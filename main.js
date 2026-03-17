@@ -21,10 +21,17 @@ let usageData = {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 function loadConfig() {
-  try { if (fs.existsSync(configPath)) return JSON.parse(fs.readFileSync(configPath, 'utf8')); } catch(e){}
-  return { checkInterval: 300 };
+  try {
+    if (fs.existsSync(configPath)) return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch(e) {
+    console.error('loadConfig failed, using defaults:', e.message);
+  }
+  return { checkInterval: 0 };
 }
-function saveConfig(cfg) { fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2)); }
+function saveConfig(cfg) {
+  try { fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2)); }
+  catch(e) { console.error('saveConfig failed:', e.message); }
+}
 
 // ─── Pure-JS PNG encoder (for tray icons) ─────────────────────────────────────
 function crc32(buf) {
@@ -103,8 +110,10 @@ function drawMascot(px, W, H, ox, oy, sc) {
 // CSS size = display pt size. capturePage returns CSS × devicePixelRatio pixels.
 // scaleFactor = devicePixelRatio → displayed at exactly CSS pt size.
 // % text is baked into the image so it aligns perfectly with the mascot.
+let renderCounter = 0;
 function renderTrayBar(pct, label = null) {
   return new Promise(resolve => {
+    const renderSeq = ++renderCounter;
     const p       = Math.min(Math.max(pct, 0), 100);
     const svgPath = path.join(__dirname, 'assets', 'clawd.svg');
     const dpr     = screen.getPrimaryDisplay().scaleFactor; // 2 on Retina
@@ -134,8 +143,8 @@ function renderTrayBar(pct, label = null) {
     </div>
     </body></html>`;
 
-    const tmpHtml = path.join(app.getPath('temp'), 'clawd-tray.html');
-    fs.writeFileSync(tmpHtml, html);
+    const tmpHtml = path.join(app.getPath('temp'), `clawd-tray-${renderSeq}.html`);
+    try { fs.writeFileSync(tmpHtml, html); } catch(e) { console.error('renderTrayBar write failed:', e.message); resolve(null); return; }
 
     const win = new BrowserWindow({ width: cssW, height: cssH, show: false,
       transparent: true, webPreferences: { offscreen: true } });
@@ -197,15 +206,6 @@ async function fetchUsage() {
       },
     });
 
-    // Intercept usage_limit API call for reliable data extraction
-    let apiData = null;
-    claudeSession.webRequest.onCompleted(
-      { urls: ['*://claude.ai/api/usage_limit*'] },
-      async (details) => {
-        console.log('Intercepted:', details.url, details.statusCode);
-      }
-    );
-
     const done = (result) => {
       clearTimeout(timeoutId);
       if (!win.isDestroyed()) win.destroy();
@@ -214,7 +214,7 @@ async function fetchUsage() {
 
     const timeoutId = setTimeout(() => done(null), 25000);
 
-    win.webContents.on('did-finish-load', async () => {
+    win.webContents.once('did-finish-load', async () => {
       const currentUrl = win.webContents.getURL();
       console.log('Loaded:', currentUrl);
 
@@ -396,9 +396,15 @@ function createPopupWindow(trayBounds) {
   const pinned = cfg.pinned || false;
 
   let x, y;
-  if (pinned && cfg.pinnedBounds) {
-    x = cfg.pinnedBounds.x;
-    y = cfg.pinnedBounds.y;
+  const pb = cfg.pinnedBounds;
+  const onScreen = pb && Number.isFinite(pb.x) && Number.isFinite(pb.y) &&
+    screen.getAllDisplays().some(d => {
+      const a = d.workArea;
+      return pb.x < a.x + a.width && pb.x + W > a.x && pb.y < a.y + a.height && pb.y + H > a.y;
+    });
+  if (pinned && onScreen) {
+    x = pb.x;
+    y = pb.y;
   } else {
     // Position directly below the tray icon, horizontally centred on it
     const display = screen.getDisplayNearestPoint({ x: trayBounds.x, y: trayBounds.y });
@@ -411,7 +417,7 @@ function createPopupWindow(trayBounds) {
 
   popupWindow = new BrowserWindow({
     width: W, height: H, x, y,
-    frame: false, resizable: false, movable: true, alwaysOnTop: true,
+    frame: false, resizable: false, movable: true, alwaysOnTop: pinned,
     skipTaskbar: true, transparent: true, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true },
   });
@@ -458,11 +464,6 @@ ipcMain.handle('toggle-pin', () => {
   }
   saveConfig(cfg);
   return cfg.pinned;
-});
-ipcMain.handle('import-cookie', async (_, value) => {
-  const s = await getClaudeSession();
-  await s.cookies.set({ url: 'https://claude.ai', name: 'sessionKey', value, path: '/', secure: true, httpOnly: true });
-  return isLoggedIn();
 });
 ipcMain.handle('set-theme', (_, t) => { const cfg = loadConfig(); cfg.theme = t; saveConfig(cfg); });
 ipcMain.handle('set-interval', (_, sec) => {

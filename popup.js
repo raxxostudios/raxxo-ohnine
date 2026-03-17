@@ -89,7 +89,8 @@ function applyAppearance(ap) {
   // Font: font-ui (default) | font-sans | font-system | font-dyslexic
   const body = document.body;
   body.classList.remove('font-sans', 'font-system', 'font-dyslexic');
-  if (ap.font && ap.font !== 'ui') body.classList.add(`font-${ap.font}`);
+  const allowedFonts = ['sans', 'system', 'dyslexic'];
+  if (ap.font && allowedFonts.includes(ap.font)) body.classList.add(`font-${ap.font}`);
   // Never override user's manual theme choice
 }
 
@@ -169,6 +170,7 @@ async function handleRefresh() {
     const data = await window.api.refreshNow();
     if (data && data.lastUpdated) renderUsage(data);
   } catch(e) {
+    console.error('handleRefresh failed:', e);
     lastUpdated.textContent = 'sync failed';
   }
   finally {
@@ -266,4 +268,7 @@ async function init() {
   }
 }
 
-init();
+init().catch(e => {
+  console.error('init failed:', e);
+  showLogin();
+});
