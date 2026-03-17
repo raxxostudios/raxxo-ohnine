@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Claude Usage</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body class="theme-dark">
+<div id="app">
+
+  <!-- Main view -->
+  <div id="mainView" class="hidden">
+    <div class="header">
+      <img src="assets/clawd.svg" class="header-logo" alt="Claw'd" />
+      <span class="header-title">Your usage limits</span>
+      <button class="icon-btn" id="pinBtn" data-tip="Pin window">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="refreshBtn" data-tip="Sync">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+      </button>
+      <button class="icon-btn theme-toggle" id="themeToggle" data-tip="Switch to dark mode">
+        <svg id="iconSun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg id="iconMoon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <button class="logout-btn" id="logoutBtn" title="Sign out">sign out</button>
+    </div>
+
+    <div class="body">
+
+      <!-- Current session -->
+      <div class="section-title">Current session</div>
+      <div class="lane-row">
+        <div class="lane-bar">
+          <span class="lane-fill" id="sessionFill"></span>
+          <div class="lane-crab" id="laneCrab">
+            <img src="assets/clawd.svg" class="clawd-img" id="clawdImg" alt="Claw'd" />
+          </div>
+        </div>
+        <span class="lane-pct pct-ok" id="sessionPct">—</span>
+      </div>
+      <div class="lane-ticks">
+        <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+      </div>
+      <div class="reset-line" id="sessionReset"></div>
+
+      <!-- Weekly limits -->
+      <hr class="section-sep" />
+      <div class="section-title">Weekly limits</div>
+      <a class="learn-more" id="learnMoreBtn" href="#">Learn more about usage limits</a>
+      <div class="compact-header">
+        <span class="compact-label">All models</span>
+        <span class="compact-pct" id="weeklyPct">—</span>
+      </div>
+      <div class="compact-bar"><span class="lane-fill" id="weeklyFill"></span></div>
+      <div class="compact-reset" id="weeklyReset"></div>
+
+      <div class="compact-header">
+        <span class="compact-label">Sonnet only</span>
+        <span class="compact-pct" id="sonnetPct">—</span>
+      </div>
+      <div class="compact-bar"><span class="lane-fill" id="sonnetFill"></span></div>
+      <div class="compact-reset" id="sonnetReset"></div>
+
+      <!-- Auto-sync -->
+      <div class="interval-row">
+        <span class="interval-label" id="intervalLabel">Auto-sync</span>
+        <div class="interval-pills">
+          <button class="interval-pill oneoff-pill" id="oneoffPill" data-tip="Sync once, no auto">off</button>
+          <button class="interval-pill" data-sec="10">10s</button>
+          <button class="interval-pill" data-sec="30">30s</button>
+          <button class="interval-pill" data-sec="60">1m</button>
+          <button class="interval-pill" data-sec="300">5m</button>
+          <button class="interval-pill" data-sec="600">10m</button>
+          <button class="interval-pill" data-sec="1800">30m</button>
+          <button class="interval-pill" data-sec="3600">1h</button>
+        </div>
+      </div>
+
+      <!-- Last sync — always last, right-aligned -->
+      <div class="footer-line">
+        <button class="about-link" id="aboutBtn">v<span id="versionNum">1.0.0</span></button>
+        <span id="lastUpdated" class="footer-ts"></span>
+        <button class="footer-sync" id="manualRefreshBtn" data-tip="Sync now">sync</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login required view -->
+  <div id="loginView" class="hidden">
+    <div class="header">
+      <img src="assets/clawd.svg" class="header-logo" alt="Claw'd" />
+      <span class="header-title">Your usage limits</span>
+    </div>
+    <div class="body nokey-body">
+      <img src="assets/clawd.svg" class="clawd-big" alt="Claw'd" />
+      <div class="nokey-msg">Sign in to Claude to start tracking</div>
+      <div class="nokey-sub">A login window will open — one time only</div>
+      <button class="primary-btn" id="loginBtn">Sign in to claude.ai</button>
+    </div>
+  </div>
+
+  <!-- About / Legal view -->
+  <div id="aboutView" class="hidden">
+    <div class="header">
+      <button class="icon-btn" id="aboutBackBtn" data-tip="Back">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="header-title">About</span>
+      <span class="about-version" id="aboutVersion">v1.0.0</span>
+    </div>
+    <div class="body about-body">
+      <div class="about-app">
+        <img src="assets/clawd.svg" class="about-logo" alt="Claw'd" />
+        <div>
+          <div class="about-name">Claude Usage Meter</div>
+          <div class="about-maker">by <span class="about-raxxo">RAXXO Studios</span></div>
+        </div>
+      </div>
+
+      <hr class="section-sep" />
+
+      <div class="legal-block">
+        <div class="legal-title">Privacy</div>
+        <div class="legal-text">This app reads your usage data directly from claude.ai using your own login session. No data is ever collected, stored on any server, or shared with anyone — everything stays on your device.</div>
+      </div>
+
+      <div class="legal-block">
+        <div class="legal-title">Disclaimer</div>
+        <div class="legal-text">Claude Usage Meter is an independent tool. It is not affiliated with, endorsed by, or connected to Anthropic, PBC. "Claude" is a trademark of Anthropic. By using this app, you agree that you are solely responsible for ensuring your use complies with Anthropic's Terms of Service.</div>
+      </div>
+
+      <div class="legal-block">
+        <div class="legal-title">License</div>
+        <div class="legal-text">Single-user license. Do not redistribute or resell. Provided as-is with no warranty. Use at your own risk.</div>
+      </div>
+
+      <div class="about-links">
+        <button class="about-ext-link" id="legalPrivacyBtn">Full Privacy Policy</button>
+        <button class="about-ext-link" id="legalTosBtn">Terms of Service</button>
+        <button class="icon-btn about-back-inline" id="aboutBackBtn2" data-tip="Back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading view -->
+  <div id="loadingView">
+    <div class="header">
+      <img src="assets/clawd.svg" class="header-logo" alt="Claw'd" />
+      <span class="header-title">Your usage limits</span>
+    </div>
+    <div class="body nokey-body">
+      <img src="assets/clawd.svg" class="clawd-big walk" alt="Claw'd" />
+      <div class="nokey-sub">Fetching usage…</div>
+    </div>
+  </div>
+
+</div>
+<script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "claude-usage-meter",
+  "version": "1.0.0",
+  "description": "Claude API usage meter for system tray",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": [],
+  "author": "RAXXO Studios",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^41.0.2"
+  }
+}
