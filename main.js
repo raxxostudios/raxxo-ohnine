@@ -264,18 +264,23 @@ async function fetchUsage() {
 const { Notification } = require('electron');
 const notified = { 9: false, 80: false, 100: false };
 
+const notifIcon = path.join(__dirname, 'assets', 'icon.icns');
+function notify(title, body) {
+  new Notification({ title, body, icon: notifIcon }).show();
+}
+
 function maybeNotify(pct) {
   if (pct >= 100 && !notified[100]) {
     notified[100] = true;
     notified[80]  = true;
     notified[9]   = true;
-    new Notification({ title: 'OhNine — Oh Nein! 🚨', body: 'Session limit reached. Time to wait for a reset.' }).show();
-  } else if (pct >= 80 && !notified[80]) {
-    notified[80] = true;
-    new Notification({ title: 'OhNine — Heads up 👀', body: "You're at 80%. Oh nein is coming." }).show();
+    notify('OhNine — Oh Nein.', 'Session limit reached. Time to wait for a reset.');
   } else if (pct >= 91 && !notified[9]) {
     notified[9] = true;
-    new Notification({ title: 'OhNine. Literally. 🫠', body: "9% left. This is the moment. Oh nein." }).show();
+    notify('OhNine. Literally.', '9% left. This is the moment. Oh nein.');
+  } else if (pct >= 80 && !notified[80]) {
+    notified[80] = true;
+    notify('OhNine — Heads up.', "You're at 80%. Oh nein is coming.");
   } else if (pct < 80) {
     notified[9] = false; notified[80] = false; notified[100] = false;
   }

@@ -119,8 +119,8 @@ function renderUsage(data) {
   sessionFill.style.background = fillColor(sPct);
   sessionPct.textContent = `${sPct}%`;
   sessionPct.className   = 'lane-pct ' + pctClass(sPct);
-  sessionReset.textContent = (sPct >= 91 && sPct < 100) ? '👀 Oh Nine. Literally.' :
-    sPct >= 100 ? '🚨 Oh Nein. Wait for reset.' :
+  sessionReset.textContent = (sPct >= 91 && sPct < 100) ? 'Oh Nine. Literally.' :
+    sPct >= 100 ? 'Oh Nein. Wait for reset.' :
     data.session.resetIn ? `Resets ${data.session.resetIn}` : '';
 
   if (sPct >= 100) {
