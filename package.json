@@ -42,6 +42,12 @@
     "dmg": {
       "title": "OhNine",
       "background": "assets/dmg-bg.png",
+      "icon": "assets/icon.icns",
+      "iconSize": 80,
+      "contents": [
+        { "x": 135, "y": 200 },
+        { "x": 405, "y": 200, "type": "link", "path": "/Applications" }
+      ],
       "window": {
         "width": 540,
         "height": 380

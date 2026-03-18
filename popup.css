@@ -147,16 +147,16 @@ html, body { width: 360px; height: 390px; background: transparent; overflow: hid
 .compact-reset { font-size: 10px; color: var(--sub); min-height: 13px; margin-bottom: 4px; }
 
 /* ── Footer ── */
-.interval-row { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; }
+.interval-row { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 8px; }
 .footer-line { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding-top: 6px; font-size: 11px; color: var(--sub); }
 .footer-sync { background: none; border: none; cursor: pointer; color: var(--green); font-size: 11px; font-family: var(--font); padding: 0; }
 .footer-sync:hover { opacity: 0.8; }
 .interval-label { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
-.interval-pills { display: flex; gap: 4px; }
+.interval-pills { display: flex; gap: 3px; flex-wrap: wrap; }
 .interval-pill {
   background: transparent; border: 1px solid var(--border);
   color: var(--sub); font-family: var(--font); font-size: 11px;
-  padding: 2px 5px; border-radius: 4px; cursor: pointer;
+  padding: 2px 4px; border-radius: 4px; cursor: pointer;
   transition: all 0.15s;
 }
 .interval-pill:hover { border-color: var(--green); color: var(--green); }
