@@ -1,8 +1,8 @@
 {
-  "name": "clawd",
-  "productName": "Claw'd",
+  "name": "ohnine",
+  "productName": "OhNine",
   "version": "1.0.1",
-  "description": "Know before you hit the wall. Menu bar app that watches your Claude usage.",
+  "description": "Oh Nine. Oh Nein. The menu bar app that tells you how much Claude you have left before it tells you no.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -23,8 +23,8 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "studio.raxxo.clawd",
-    "productName": "Claw'd",
+    "appId": "studio.raxxo.ohnine",
+    "productName": "OhNine",
     "icon": "assets/icon.icns",
     "mac": {
       "category": "public.app-category.productivity",
@@ -40,7 +40,7 @@
       "icon": "assets/icon.icns"
     },
     "dmg": {
-      "title": "Claw'd",
+      "title": "OhNine",
       "background": "assets/dmg-bg.png",
       "window": {
         "width": 540,

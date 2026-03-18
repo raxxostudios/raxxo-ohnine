@@ -268,10 +268,10 @@ function maybeNotify(pct) {
   if (pct >= 100 && !notified[100]) {
     notified[100] = true;
     notified[80]  = true;
-    new Notification({ title: "Claw'd — Limit reached", body: 'Your Claude session is at 100%. Time to wait for a reset.' }).show();
+    new Notification({ title: 'OhNine — Oh Nein! 🚨', body: 'Session limit reached. Time to wait for a reset.' }).show();
   } else if (pct >= 80 && !notified[80]) {
     notified[80] = true;
-    new Notification({ title: "Claw'd — 80% used", body: 'Getting close to your Claude session limit.' }).show();
+    new Notification({ title: 'OhNine — Heads up 👀', body: "You're at 80%. Oh nein is coming." }).show();
   } else if (pct < 80) {
     notified[80] = false; notified[100] = false; // reset for next cycle
   }
@@ -285,7 +285,7 @@ async function doUpdate(showSyncing = false) {
   if (!await isLoggedIn()) {
     console.log('Not logged in');
     if (tray) {
-      tray.setToolTip('Claude Usage Meter — click to sign in');
+      tray.setToolTip('OhNine — click to sign in');
       updateTray(lastTrayPct, 'sign in');
     }
     if (popupWindow && !popupWindow.isDestroyed()) {
@@ -360,7 +360,7 @@ async function openLoginWindow() {
         bar.id = '_clawd_bar';
         bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#1a1a1a;color:#999;font:12px -apple-system,sans-serif;padding:6px 12px;display:flex;align-items:center;gap:8px;-webkit-app-region:drag';
         const logo = document.createElement('span');
-        logo.textContent = "Claw'd";
+        logo.textContent = "OhNine";
         logo.style.cssText = 'color:#e3fc02;font-weight:600';
         const addr = document.createElement('span');
         addr.textContent = ${JSON.stringify(host)};
@@ -502,7 +502,7 @@ app.whenReady().then(async () => {
 
   // Start with blank; async SVG render replaces it within ~300ms
   tray = new Tray(nativeImage.createFromBuffer(makePNG(1, 1, new Uint8Array(4))));
-  tray.setToolTip('Claude Usage Meter');
+  tray.setToolTip('OhNine');
   renderTrayBar(0).then(img => { if (img && tray && !tray.isDestroyed()) tray.setImage(img); });
 
   function buildContextMenu() {
@@ -535,7 +535,7 @@ app.whenReady().then(async () => {
         click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked })
       },
       { type: 'separator' },
-      { label: 'Quit Claw\'d', click: () => app.quit() },
+      { label: 'Quit OhNine', click: () => app.quit() },
     ]);
   }
 
