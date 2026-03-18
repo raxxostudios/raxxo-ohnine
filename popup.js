@@ -58,12 +58,12 @@ function triggerWalkBack() {
   moveCrabTo(100, true);
   clawdImg.classList.add('walking');
   requestAnimationFrame(() => {
-    laneCrab.style.transition = 'left 3s linear';
+    laneCrab.style.transition = 'left 20s linear';
     laneCrab.style.left = '0%';
     setTimeout(() => {
       isWalkingBack = false;
       clawdImg.classList.remove('walking');
-    }, 3200);
+    }, 21000);
   });
 }
 
@@ -281,3 +281,6 @@ init().catch(e => {
   console.error('init failed:', e);
   showLogin();
 });
+
+// TEMP: press F to fake 100% — remove before release
+document.addEventListener('keydown', e => { if (e.key === 'f') window.api.fake100(); });

@@ -19,4 +19,5 @@ contextBridge.exposeInMainWorld('api', {
   togglePin:      () => ipcRenderer.invoke('toggle-pin'),
   getPin:         () => ipcRenderer.invoke('get-pin'),
   getVersion:     () => ipcRenderer.invoke('get-version'),
+  fake100:        () => ipcRenderer.invoke('fake-100'), // TEMP: remove before release
 });

@@ -342,9 +342,11 @@ let pollTimer = null;
 function startPolling(sec=300) {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = null;
-  if (sec === 0) return;
+  if (sec <= 0) { console.log('Polling off'); return; }
+  const actual = Math.max(sec, 30); // minimum 30s — each fetch takes ~6s
+  console.log(`Polling every ${actual}s`);
   doUpdate();
-  pollTimer = setInterval(doUpdate, sec * 1000);
+  pollTimer = setInterval(() => { console.log('Poll tick'); doUpdate(); }, actual * 1000);
 }
 
 // ─── Login window ─────────────────────────────────────────────────────────────
@@ -355,42 +357,15 @@ async function openLoginWindow() {
   loginWindow = new BrowserWindow({
     width: 520, height: 680,
     title: 'Sign in to Claude',
-    alwaysOnTop: true,
-    titleBarStyle: 'hiddenInset',
     webPreferences: { session: claudeSession },
   });
 
   // Inject a minimal address bar so it feels like a real browser
-  loginWindow.webContents.on('did-finish-load', () => {
-    const host = 'claude.ai';
-    loginWindow.webContents.executeJavaScript(`
-      if (!document.getElementById('_clawd_bar')) {
-        const bar = document.createElement('div');
-        bar.id = '_clawd_bar';
-        bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#1a1a1a;color:#999;font:12px -apple-system,sans-serif;padding:6px 12px;display:flex;align-items:center;gap:8px;-webkit-app-region:drag';
-        const logo = document.createElement('span');
-        logo.textContent = "OhNine";
-        logo.style.cssText = 'color:#e3fc02;font-weight:600';
-        const addr = document.createElement('span');
-        addr.textContent = ${JSON.stringify(host)};
-        addr.style.cssText = 'flex:1;background:#111;border-radius:4px;padding:3px 8px;color:#666;-webkit-app-region:no-drag';
-        const lock = document.createElement('span');
-        lock.textContent = '🔒 Secure';
-        lock.style.fontSize = '10px';
-        bar.append(logo, addr, lock);
-        document.body.prepend(bar);
-        document.body.style.paddingTop = '32px';
-      }
-    `).catch(() => {});
-  });
-
-  // Make OAuth popups (e.g. Google sign-in) appear on top
+  // Make OAuth popups (e.g. Google sign-in) work
   loginWindow.webContents.setWindowOpenHandler(() => ({
     action: 'allow',
     overrideBrowserWindowOptions: {
       width: 520, height: 660,
-      alwaysOnTop: true,
-      titleBarStyle: 'hiddenInset',
       webPreferences: { session: claudeSession },
     },
   }));
@@ -418,7 +393,7 @@ async function openLoginWindow() {
 
 // ─── Popup window ─────────────────────────────────────────────────────────────
 function createPopupWindow(trayBounds) {
-  const W = 360, H = 380;
+  const W = 360, H = 390;
   const cfg = loadConfig();
   const pinned = cfg.pinned || false;
 
@@ -491,6 +466,21 @@ ipcMain.handle('toggle-pin', () => {
   return cfg.pinned;
 });
 ipcMain.handle('set-theme', (_, t) => { const cfg = loadConfig(); cfg.theme = t; saveConfig(cfg); });
+// TEMP: fake 100% for demo — remove before release
+ipcMain.handle('fake-100', () => {
+  usageData = {
+    session: { pct: 100, resetIn: 'in 45 min' },
+    weekly: { pct: 87, resetAt: 'Fri 4:00 PM' },
+    sonnet: { pct: 62, resetAt: 'Tue 8:00 PM' },
+    lastUpdated: new Date().toISOString(),
+    appearance: { theme: '', font: 'ui' },
+  };
+  updateTray(100);
+  maybeNotify(100);
+  if (popupWindow && !popupWindow.isDestroyed()) {
+    popupWindow.webContents.send('usage-update', usageData);
+  }
+});
 ipcMain.handle('set-interval', (_, sec) => {
   const cfg = loadConfig();
   cfg.checkInterval = sec;

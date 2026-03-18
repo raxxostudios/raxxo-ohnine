@@ -41,15 +41,16 @@ body.font-sans    { --font: ui-sans-serif, system-ui, sans-serif; }
 body.font-system  { --font: system-ui, sans-serif; }
 body.font-dyslexic { --font: 'OpenDyslexic', 'Comic Sans MS', sans-serif; }
 
-html, body { width: 360px; height: 380px; background: transparent; overflow: hidden; font-family: var(--font); }
+html, body { width: 360px; height: 390px; background: transparent; overflow: hidden; font-family: var(--font); }
 
 #app {
-  width: 360px; height: 380px;
+  width: 360px; height: 390px;
   background: var(--bg);
   border: 1px solid #2a2a2a; border-radius: 12px; overflow: hidden;
   display: flex; flex-direction: column;
   box-shadow: 0 20px 60px rgba(0,0,0,0.9);
 }
+#mainView, #loginView, #loadingView, #aboutView { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
 
 /* ── Header ── */
 .header {
@@ -132,8 +133,8 @@ html, body { width: 360px; height: 380px; background: transparent; overflow: hid
 .clawd-img.walking { animation: walk 0.3s steps(2,end) infinite; }
 @keyframes walk { 0%{transform:translateY(0) scaleX(1)} 50%{transform:translateY(-2px) scaleX(1.05)} 100%{transform:translateY(0) scaleX(1)} }
 
-.lane-pct { font-size: 13px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
-.lane-ticks { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); padding: 0 2px; margin-top: 1px; margin-right: 44px; /* offset for lane-pct width+gap */ }
+.lane-pct { font-size: 13px; font-weight: 700; width: 44px; text-align: right; flex-shrink: 0; }
+.lane-ticks { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); padding: 0 2px; margin-top: 1px; margin-right: 52px; /* offset for lane-pct width+gap */ }
 .reset-line { font-size: 11px; color: var(--sub); min-height: 14px; margin-top: 2px; margin-bottom: 2px; }
 
 /* ── Compact weekly rows ── */
@@ -195,7 +196,7 @@ html, body { width: 360px; height: 380px; background: transparent; overflow: hid
 }
 .about-link:hover { opacity: 1; color: var(--text); }
 .about-version { font-size: 11px; color: var(--muted); margin-left: auto; }
-.about-body { gap: 8px; overflow-y: auto; min-height: 0; flex: 1; padding-bottom: 16px; }
+.about-body { gap: 8px; overflow: hidden; min-height: 0; flex: 1; padding-bottom: 16px; }
 .about-app { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
 .about-logo { width: 36px; height: auto; }
 .about-name { font-size: 13px; font-weight: 600; color: var(--text); }
