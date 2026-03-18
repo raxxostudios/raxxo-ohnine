@@ -24,6 +24,20 @@ $('aboutBackBtn').addEventListener('click', showMain);
 $('aboutBackBtn2').addEventListener('click', showMain);
 $('legalPrivacyBtn').addEventListener('click', () => window.api.openUrl('https://raxxo.shop/policies/privacy-policy'));
 $('legalTosBtn').addEventListener('click', () => window.api.openUrl('https://raxxo.shop/policies/terms-of-service'));
+$('checkUpdateBtn').addEventListener('click', async () => {
+  const btn = $('checkUpdateBtn');
+  btn.textContent = 'Checking...';
+  const result = await window.api.checkUpdate();
+  if (result && result.available) {
+    btn.textContent = 'Update available';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+    btn.onclick = () => window.api.openUrl(result.url);
+  } else {
+    btn.textContent = 'Up to date';
+    setTimeout(() => { btn.textContent = 'Check for updates'; }, 2000);
+  }
+});
 $('loginAboutBtn').addEventListener('click', showAbout);
 $('learnMoreBtn').addEventListener('click', (e) => { e.preventDefault(); window.api.openUrl('https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work'); });
 $('manualRefreshBtn').addEventListener('click', handleRefresh);
@@ -42,7 +56,7 @@ function pctClass(p) {
 }
 function fmtTime(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+  return new Date(iso).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12: true }).toLowerCase();
 }
 
 let isWalkingBack = false;
@@ -111,9 +125,9 @@ function renderUsage(data) {
   showMain();
   applyAppearance(data.appearance);
 
-  const sPct = data.session?.pct || 0;
-  const wPct = data.weekly?.pct  || 0;
-  const nPct = data.sonnet?.pct  || 0;
+  const sPct = Math.min(data.session?.pct || 0, 100);
+  const wPct = Math.min(data.weekly?.pct  || 0, 100);
+  const nPct = Math.min(data.sonnet?.pct  || 0, 100);
 
   // Session bar + Claw'd
   sessionFill.style.width      = `${sPct}%`;
@@ -275,6 +289,20 @@ async function init() {
     showLoading();
     await handleRefresh();
   }
+
+  // One-time version check (non-blocking)
+  window.api.checkUpdate().then(result => {
+    if (result && result.available) {
+      const aboutBtn = $('aboutBtn');
+      aboutBtn.classList.add('has-update');
+      aboutBtn.dataset.tip = 'Update available';
+      const dot = $('updateDot');
+      dot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.api.openUrl(result.url);
+      });
+    }
+  }).catch(() => {});
 }
 
 init().catch(e => {
@@ -282,5 +310,13 @@ init().catch(e => {
   showLogin();
 });
 
-// TEMP: press F to fake 100% — remove before release
-document.addEventListener('keydown', e => { if (e.key === 'f') window.api.fake100(); });
+// Demo mode: hold Ctrl+Shift + key to preview states (for screenshots/recording)
+document.addEventListener('keydown', e => {
+  if (!e.ctrlKey || !e.shiftKey) return;
+  const c = e.code;
+  if (c.startsWith('Digit')) window.api.fakeState(parseInt(c[5]));
+  else if (c === 'KeyT') $('themeToggle').click();
+  else if (c === 'KeyA') showAbout();
+  else if (c === 'KeyL') showLogin();
+  else if (c === 'KeyR') window.api.refreshNow().then(d => { if (d) renderUsage(d); });
+});

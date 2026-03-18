@@ -25,6 +25,8 @@ body.theme-light {
   --text:   #1a1a1a;
   --sub:    #666;
   --red:    #cc2200;
+  --yellow: #b08800;
+  --orange: #d45000;
 }
 body.theme-dark {
   --bg:     #0d0d0d;
@@ -215,6 +217,18 @@ html, body { width: 360px; height: 390px; background: transparent; overflow: hid
 .about-ext-link:hover { border-color: var(--green); color: var(--green); }
 .login-footer { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: auto; padding-top: 12px; }
 .login-version { font-size: 10px; color: var(--muted); opacity: 0.6; }
+
+/* ── Update indicator ── */
+.update-dot {
+  display: none;
+  width: 6px; height: 6px;
+  background: #e3fc02;
+  border-radius: 50%;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.has-update .update-dot { display: inline-block; cursor: pointer; }
+.has-update .update-dot:hover { background: #fff; }
 
 /* ── Utilities ── */
 .hidden { display: none !important; }

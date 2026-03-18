@@ -3,6 +3,14 @@ const path = require('path');
 const fs = require('fs');
 const zlib = require('zlib');
 
+// Suppress EPIPE crashes when stdout/stderr pipe breaks (terminal closed)
+process.stdout?.on('error', () => {});
+process.stderr?.on('error', () => {});
+process.on('uncaughtException', (e) => {
+  if (e.code === 'EPIPE') return;
+  console.error('Uncaught:', e);
+});
+
 const configPath = path.join(app.getPath('userData'), 'config.json');
 
 let tray = null;
@@ -18,6 +26,34 @@ let usageData = {
   sonnet:  { pct: 0, label: 'Sonnet only',      resetAt: '' },
   lastUpdated: null,
 };
+
+let updateInfo = { available: false, url: '' };
+
+// ─── Version check ────────────────────────────────────────────────────────────
+async function checkForUpdate() {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    const res = await fetch('https://raxxo-studio-dev.vercel.app/ohnine-version.json', { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && data.version && data.version !== app.getVersion()) {
+      // Simple comparison: any mismatch where remote is not current = update available
+      const remote = data.version.split('.').map(Number);
+      const local  = app.getVersion().split('.').map(Number);
+      let newer = false;
+      for (let i = 0; i < Math.max(remote.length, local.length); i++) {
+        const r = remote[i] || 0, l = local[i] || 0;
+        if (r > l) { newer = true; break; }
+        if (r < l) break;
+      }
+      if (newer) {
+        updateInfo = { available: true, url: data.url || 'https://raxxo.shop' };
+      }
+    }
+  } catch(e) { /* silent */ }
+}
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 function loadConfig() {
@@ -427,7 +463,9 @@ function createPopupWindow(trayBounds) {
   popupWindow.on('blur', () => {
     if (!popupWindow || popupWindow.isDestroyed()) return;
     const c = loadConfig();
-    if (!c.pinned) popupWindow.hide();
+    if (c.pinned) return;
+    if (loginWindow && !loginWindow.isDestroyed()) return;
+    popupWindow.hide();
   });
   popupWindow.on('moved', () => {
     if (!popupWindow || popupWindow.isDestroyed()) return;
@@ -441,6 +479,10 @@ function createPopupWindow(trayBounds) {
 
 // ─── IPC ──────────────────────────────────────────────────────────────────────
 ipcMain.handle('get-version', () => app.getVersion());
+ipcMain.handle('check-update', async () => {
+  await checkForUpdate();
+  return updateInfo;
+});
 ipcMain.handle('get-usage', () => usageData);
 ipcMain.handle('refresh-now', async () => { await doUpdate(true); return usageData; });
 ipcMain.handle('is-logged-in', () => isLoggedIn());
@@ -450,7 +492,12 @@ ipcMain.handle('get-interval', () => {
   return cfg.hasOwnProperty('checkInterval') ? cfg.checkInterval : 0;
 });
 ipcMain.handle('get-theme', () => loadConfig().theme || '');
-ipcMain.handle('open-url', (_, url) => shell.openExternal(url));
+const allowedUrlPrefixes = ['https://raxxo.shop', 'https://raxxo-studio-dev.vercel.app', 'https://support.claude.com', 'https://claude.ai'];
+ipcMain.handle('open-url', (_, url) => {
+  if (typeof url === 'string' && allowedUrlPrefixes.some(p => url.startsWith(p))) {
+    shell.openExternal(url);
+  }
+});
 ipcMain.handle('get-pin', () => loadConfig().pinned || false);
 ipcMain.handle('toggle-pin', () => {
   const cfg = loadConfig();
@@ -466,17 +513,32 @@ ipcMain.handle('toggle-pin', () => {
   return cfg.pinned;
 });
 ipcMain.handle('set-theme', (_, t) => { const cfg = loadConfig(); cfg.theme = t; saveConfig(cfg); });
-// TEMP: fake 100% for demo — remove before release
-ipcMain.handle('fake-100', () => {
+// Demo mode: Shift+0 through Shift+9 in popup to preview states (for screenshots/recording)
+const fakeStates = [
+  { s: 0,   w: 5,  n: 1,  sr: 'in 4 hr 58 min', wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 0 = fresh
+  { s: 12,  w: 18, n: 3,  sr: 'in 3 hr 22 min', wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 1 = warming up
+  { s: 25,  w: 29, n: 8,  sr: 'in 2 hr 55 min', wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 2 = quarter
+  { s: 38,  w: 35, n: 14, sr: 'in 2 hr 30 min', wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 3 = building
+  { s: 50,  w: 48, n: 22, sr: 'in 2 hr 5 min',  wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 4 = halfway (yellow)
+  { s: 65,  w: 55, n: 31, sr: 'in 1 hr 40 min', wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 5 = getting warm
+  { s: 76,  w: 68, n: 42, sr: 'in 1 hr 12 min', wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 6 = orange zone
+  { s: 85,  w: 74, n: 51, sr: 'in 48 min',      wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 7 = heads up (80% notif)
+  { s: 91,  w: 79, n: 55, sr: 'in 28 min',      wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 8 = Oh Nine. Literally.
+  { s: 100, w: 87, n: 62, sr: 'in 15 min',      wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 9 = Oh Nein. (walkback)
+];
+ipcMain.handle('fake-state', (_, n) => {
+  const f = fakeStates[Math.min(n, 9)];
+  // Reset notification flags so they fire fresh
+  notified[9] = false; notified[80] = false; notified[100] = false;
   usageData = {
-    session: { pct: 100, resetIn: 'in 45 min' },
-    weekly: { pct: 87, resetAt: 'Fri 4:00 PM' },
-    sonnet: { pct: 62, resetAt: 'Tue 8:00 PM' },
+    session: { pct: f.s, resetIn: f.sr },
+    weekly:  { pct: f.w, resetAt: f.wr },
+    sonnet:  { pct: f.n, resetAt: f.nr },
     lastUpdated: new Date().toISOString(),
     appearance: { theme: '', font: 'ui' },
   };
-  updateTray(100);
-  maybeNotify(100);
+  updateTray(f.s);
+  maybeNotify(f.s);
   if (popupWindow && !popupWindow.isDestroyed()) {
     popupWindow.webContents.send('usage-update', usageData);
   }
@@ -507,8 +569,9 @@ app.whenReady().then(async () => {
   function buildContextMenu() {
     const cfg = loadConfig();
     return require('electron').Menu.buildFromTemplate([
-      { label: 'Sync Now', click: () => doUpdate(true) },
+      { label: `OhNine v${app.getVersion()}`, enabled: false },
       { type: 'separator' },
+      { label: 'Sync Now', click: () => doUpdate(true) },
       { label: 'Open claude.ai', click: () => shell.openExternal('https://claude.ai') },
       { type: 'separator' },
       { label: 'Keep on Top', type: 'checkbox', checked: cfg.pinned || false,
@@ -521,19 +584,17 @@ app.whenReady().then(async () => {
           }
         }
       },
-      { type: 'separator' },
-      { label: `About  v${app.getVersion()}`, click: () => {
-          if (!popupWindow || popupWindow.isDestroyed()) return;
-          popupWindow.show();
-          popupWindow.webContents.send('show-about');
-        }
-      },
-      { type: 'separator' },
       { label: 'Launch at Login', type: 'checkbox',
         checked: app.getLoginItemSettings().openAtLogin,
         click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked })
       },
       { type: 'separator' },
+      { label: 'About', click: () => {
+          if (!popupWindow || popupWindow.isDestroyed()) return;
+          popupWindow.show();
+          popupWindow.webContents.send('show-about');
+        }
+      },
       { label: 'Quit OhNine', click: () => app.quit() },
     ]);
   }
@@ -561,4 +622,5 @@ app.whenReady().then(async () => {
   startPolling(initCfg.hasOwnProperty('checkInterval') ? initCfg.checkInterval : 0);
 });
 
-app.on('window-all-closed', e => e.preventDefault());
+app.on('window-all-closed', e => e.preventDefault()); // macOS tray app — keep running
+app.on('before-quit', () => { if (pollTimer) clearInterval(pollTimer); });

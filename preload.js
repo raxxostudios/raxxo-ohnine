@@ -6,8 +6,8 @@ contextBridge.exposeInMainWorld('api', {
   isLoggedIn:     () => ipcRenderer.invoke('is-logged-in'),
   openLogin:      () => ipcRenderer.invoke('open-login'),
   onUsageUpdate:  (cb) => { ipcRenderer.removeAllListeners('usage-update');   ipcRenderer.on('usage-update',   (_, d) => cb(d)); },
-  onLoginRequired:(cb) => { ipcRenderer.removeAllListeners('login-required'); ipcRenderer.once('login-required', () => cb()); },
-  onLoggedIn:     (cb) => { ipcRenderer.removeAllListeners('logged-in');      ipcRenderer.once('logged-in',      () => cb()); },
+  onLoginRequired:(cb) => { ipcRenderer.removeAllListeners('login-required'); ipcRenderer.on('login-required', () => cb()); },
+  onLoggedIn:     (cb) => { ipcRenderer.removeAllListeners('logged-in');      ipcRenderer.on('logged-in',      () => cb()); },
   logout:         () => ipcRenderer.invoke('logout'),
   setInterval:    (min) => ipcRenderer.invoke('set-interval', min),
   getInterval:    () => ipcRenderer.invoke('get-interval'),
@@ -19,5 +19,6 @@ contextBridge.exposeInMainWorld('api', {
   togglePin:      () => ipcRenderer.invoke('toggle-pin'),
   getPin:         () => ipcRenderer.invoke('get-pin'),
   getVersion:     () => ipcRenderer.invoke('get-version'),
-  fake100:        () => ipcRenderer.invoke('fake-100'), // TEMP: remove before release
+  fakeState:      (n) => ipcRenderer.invoke('fake-state', n),
+  checkUpdate:    () => ipcRenderer.invoke('check-update'),
 });

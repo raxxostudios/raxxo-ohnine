@@ -75,7 +75,7 @@
       <div class="interval-row">
         <span class="interval-label" id="intervalLabel">Auto-sync</span>
         <div class="interval-pills">
-          <button class="interval-pill oneoff-pill" id="oneoffPill" data-tip="Sync once, no auto">off</button>
+          <button class="interval-pill oneoff-pill" id="oneoffPill" data-tip="Sync once, no auto">manual</button>
           <button class="interval-pill" data-sec="30">30s</button>
           <button class="interval-pill" data-sec="60">1m</button>
           <button class="interval-pill" data-sec="120">2m</button>
@@ -88,7 +88,7 @@
 
       <!-- Last sync — always last, right-aligned -->
       <div class="footer-line">
-        <button class="about-link" id="aboutBtn">v<span id="versionNum">1.0.0</span></button>
+        <button class="about-link" id="aboutBtn">v<span id="versionNum">1.0.1</span><span class="update-dot" id="updateDot"></span></button>
         <span id="lastUpdated" class="footer-ts"></span>
         <button class="footer-sync" id="manualRefreshBtn" data-tip="Sync now">sync</button>
       </div>
@@ -122,7 +122,7 @@
         </svg>
       </button>
       <span class="header-title">About</span>
-      <span class="about-version" id="aboutVersion">v1.0.0</span>
+      <span class="about-version" id="aboutVersion">v1.0.1</span>
     </div>
     <div class="body about-body">
       <div class="about-app">
@@ -151,8 +151,9 @@
       </div>
 
       <div class="about-links">
-        <button class="about-ext-link" id="legalPrivacyBtn">Full Privacy Policy</button>
-        <button class="about-ext-link" id="legalTosBtn">Terms of Service</button>
+        <button class="about-ext-link" id="legalPrivacyBtn">Privacy Policy</button>
+        <button class="about-ext-link" id="legalTosBtn">Terms</button>
+        <button class="about-ext-link" id="checkUpdateBtn">Check for updates</button>
         <button class="icon-btn about-back-inline" id="aboutBackBtn2" data-tip="Back">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"/>
