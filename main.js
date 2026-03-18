@@ -166,7 +166,7 @@ function renderTrayBar(pct, label = null) {
 
 function updateTray(pct, label = null) {
   if (!tray) return;
-  if (label === null) { lastTrayPct = pct; tray.setToolTip(`Claude: ${pct}% used — click for details`); }
+  if (label === null) { lastTrayPct = pct; tray.setToolTip(`OhNine: ${pct}% used`); }
   const seq = ++trayRenderSeq;
   renderTrayBar(pct, label).then(img => {
     if (seq !== trayRenderSeq) return; // stale render — a newer one is coming
@@ -274,13 +274,13 @@ function maybeNotify(pct) {
     notified[100] = true;
     notified[80]  = true;
     notified[9]   = true;
-    notify('OhNine — Oh Nein.', 'Session limit reached. Time to wait for a reset.');
+    notify('OhNine. Oh Nein.', 'Session limit reached. Time to wait for a reset.');
   } else if (pct >= 91 && !notified[9]) {
     notified[9] = true;
     notify('OhNine. Literally.', '9% left. This is the moment. Oh nein.');
   } else if (pct >= 80 && !notified[80]) {
     notified[80] = true;
-    notify('OhNine — Heads up.', "You're at 80%. Oh nein is coming.");
+    notify('OhNine. Heads up.', "You're at 80%. Oh nein is coming.");
   } else if (pct < 80) {
     notified[9] = false; notified[80] = false; notified[100] = false;
   }
@@ -294,7 +294,7 @@ async function doUpdate(showSyncing = false) {
   if (!await isLoggedIn()) {
     console.log('Not logged in');
     if (tray) {
-      tray.setToolTip('OhNine — click to sign in');
+      tray.setToolTip('OhNine. Click to sign in.');
       updateTray(lastTrayPct, 'sign in');
     }
     if (popupWindow && !popupWindow.isDestroyed()) {
@@ -555,14 +555,14 @@ app.whenReady().then(async () => {
       createPopupWindow(bounds);
       popupWindow.once('ready-to-show', () => {
         popupWindow.show();
-        popupWindow.webContents.send('usage-update', usageData);
+        if (usageData.lastUpdated) popupWindow.webContents.send('usage-update', usageData);
       });
       doUpdate(true);
     } else if (popupWindow.isVisible()) {
       popupWindow.hide();
     } else {
       popupWindow.show();
-      popupWindow.webContents.send('usage-update', usageData);
+      if (usageData.lastUpdated) popupWindow.webContents.send('usage-update', usageData);
       doUpdate(true);
     }
   });

@@ -24,6 +24,7 @@ $('aboutBackBtn').addEventListener('click', showMain);
 $('aboutBackBtn2').addEventListener('click', showMain);
 $('legalPrivacyBtn').addEventListener('click', () => window.api.openUrl('https://raxxo.shop/policies/privacy-policy'));
 $('legalTosBtn').addEventListener('click', () => window.api.openUrl('https://raxxo.shop/policies/terms-of-service'));
+$('loginAboutBtn').addEventListener('click', showAbout);
 $('learnMoreBtn').addEventListener('click', (e) => { e.preventDefault(); window.api.openUrl('https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work'); });
 $('manualRefreshBtn').addEventListener('click', handleRefresh);
 $('loginBtn').addEventListener('click', () => window.api.openLogin());
@@ -253,7 +254,11 @@ async function init() {
   if (!loggedIn) { showLogin(); return; }
 
   const [sec, savedTheme, version] = await Promise.all([window.api.getInterval(), window.api.getTheme(), window.api.getVersion()]);
-  if (version) { $('versionNum').textContent = version; $('aboutVersion').textContent = 'v' + version; }
+  if (version) {
+    $('versionNum').textContent = version;
+    $('aboutVersion').textContent = 'v' + version;
+    document.querySelectorAll('.login-version-num').forEach(el => el.textContent = version);
+  }
   initPin();
 
   // Persist defaults on first run
