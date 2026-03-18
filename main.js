@@ -260,6 +260,23 @@ async function fetchUsage() {
   });
 }
 
+// ─── Notifications ────────────────────────────────────────────────────────────
+const { Notification } = require('electron');
+const notified = { 80: false, 100: false };
+
+function maybeNotify(pct) {
+  if (pct >= 100 && !notified[100]) {
+    notified[100] = true;
+    notified[80]  = true;
+    new Notification({ title: "Claw'd — Limit reached", body: 'Your Claude session is at 100%. Time to wait for a reset.' }).show();
+  } else if (pct >= 80 && !notified[80]) {
+    notified[80] = true;
+    new Notification({ title: "Claw'd — 80% used", body: 'Getting close to your Claude session limit.' }).show();
+  } else if (pct < 80) {
+    notified[80] = false; notified[100] = false; // reset for next cycle
+  }
+}
+
 // ─── Update loop ──────────────────────────────────────────────────────────────
 async function doUpdate(showSyncing = false) {
   if (isUpdating) return;
@@ -303,6 +320,7 @@ async function doUpdate(showSyncing = false) {
   };
 
   updateTray(sPct);
+  maybeNotify(sPct);
   if (popupWindow && !popupWindow.isDestroyed()) {
     popupWindow.webContents.send('usage-update', usageData);
   }
@@ -430,11 +448,9 @@ function createPopupWindow(trayBounds) {
   popupWindow.on('moved', () => {
     if (!popupWindow || popupWindow.isDestroyed()) return;
     const c = loadConfig();
-    if (c.pinned) {
-      const b = popupWindow.getBounds();
-      c.pinnedBounds = { x: b.x, y: b.y };
-      saveConfig(c);
-    }
+    const b = popupWindow.getBounds();
+    c.pinnedBounds = { x: b.x, y: b.y };
+    saveConfig(c);
   });
   popupWindow.on('closed', () => { popupWindow = null; });
 }
@@ -488,6 +504,42 @@ app.whenReady().then(async () => {
   tray = new Tray(nativeImage.createFromBuffer(makePNG(1, 1, new Uint8Array(4))));
   tray.setToolTip('Claude Usage Meter');
   renderTrayBar(0).then(img => { if (img && tray && !tray.isDestroyed()) tray.setImage(img); });
+
+  function buildContextMenu() {
+    const cfg = loadConfig();
+    return require('electron').Menu.buildFromTemplate([
+      { label: 'Sync Now', click: () => doUpdate(true) },
+      { type: 'separator' },
+      { label: 'Open claude.ai', click: () => shell.openExternal('https://claude.ai') },
+      { type: 'separator' },
+      { label: 'Keep on Top', type: 'checkbox', checked: cfg.pinned || false,
+        click: (item) => {
+          const c = loadConfig(); c.pinned = item.checked;
+          if (popupWindow && !popupWindow.isDestroyed()) popupWindow.setAlwaysOnTop(c.pinned);
+          saveConfig(c);
+          if (popupWindow && !popupWindow.isDestroyed()) {
+            popupWindow.webContents.send('pin-changed', c.pinned);
+          }
+        }
+      },
+      { type: 'separator' },
+      { label: `About  v${app.getVersion()}`, click: () => {
+          if (!popupWindow || popupWindow.isDestroyed()) return;
+          popupWindow.show();
+          popupWindow.webContents.send('show-about');
+        }
+      },
+      { type: 'separator' },
+      { label: 'Launch at Login', type: 'checkbox',
+        checked: app.getLoginItemSettings().openAtLogin,
+        click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked })
+      },
+      { type: 'separator' },
+      { label: 'Quit Claw\'d', click: () => app.quit() },
+    ]);
+  }
+
+  tray.on('right-click', () => tray.popUpContextMenu(buildContextMenu()));
 
   tray.on('click', (e, bounds) => {
     if (!popupWindow || popupWindow.isDestroyed()) {

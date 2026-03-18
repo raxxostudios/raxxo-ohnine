@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('api', {
   setTheme:       (t) => ipcRenderer.invoke('set-theme', t),
   getTheme:       () => ipcRenderer.invoke('get-theme'),
   openUrl:        (url) => ipcRenderer.invoke('open-url', url),
+  onPinChanged:   (cb) => { ipcRenderer.removeAllListeners('pin-changed'); ipcRenderer.on('pin-changed', (_, v) => cb(v)); },
+  onShowAbout:    (cb) => { ipcRenderer.removeAllListeners('show-about');  ipcRenderer.on('show-about',  () => cb()); },
   togglePin:      () => ipcRenderer.invoke('toggle-pin'),
   getPin:         () => ipcRenderer.invoke('get-pin'),
   getVersion:     () => ipcRenderer.invoke('get-version'),

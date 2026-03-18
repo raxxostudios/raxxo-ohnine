@@ -185,6 +185,8 @@ async function handleRefresh() {
 window.api.onUsageUpdate(data => renderUsage(data));
 window.api.onLoginRequired(() => showLogin());
 window.api.onLoggedIn(() => { showLoading(); setTimeout(handleRefresh, 500); });
+window.api.onPinChanged(pinned => applyPin(pinned));
+window.api.onShowAbout(() => showAbout());
 
 // ── Interval pills ────────────────────────────────────────────────────────────
 const pills = document.querySelectorAll('.interval-pill:not(.oneoff-pill)');
