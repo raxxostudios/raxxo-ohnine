@@ -66,6 +66,7 @@ html, body { width: 360px; height: 390px; background: transparent; overflow: hid
 .header * { -webkit-app-region: no-drag; cursor: default; }
 .header-logo { width: 22px; height: auto; flex-shrink: 0; }
 .header-title { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; }
+.beta-badge { font-size: 9px; font-weight: 600; color: var(--green); border: 1px solid var(--green); padding: 1px 4px; border-radius: 3px; vertical-align: middle; opacity: 0.6; letter-spacing: 0.5px; }
 .icon-btn {
   background: transparent; border: none; color: var(--muted);
   font-size: 14px; cursor: pointer; padding: 2px 4px; border-radius: 4px;

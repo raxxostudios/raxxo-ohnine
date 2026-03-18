@@ -590,6 +590,14 @@ app.whenReady().then(async () => {
         click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked })
       },
       { type: 'separator' },
+      { label: 'Report a Bug', click: () => {
+          const v = app.getVersion();
+          const os = `${process.platform} ${process.arch}`;
+          const subject = encodeURIComponent(`OhNine Bug Report v${v}`);
+          const body = encodeURIComponent(`Hi Norman,\n\nI found a bug in OhNine v${v} (${os}).\n\nWhat happened:\n\n\nWhat I expected:\n\n\nScreenshot (if possible):\n\n`);
+          shell.openExternal(`mailto:help@raxxo.shop?subject=${subject}&body=${body}`);
+        }
+      },
       { label: 'About', click: () => {
           if (!popupWindow || popupWindow.isDestroyed()) return;
           popupWindow.show();
