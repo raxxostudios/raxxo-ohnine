@@ -9,6 +9,7 @@ process.stderr?.on('error', () => {});
 process.on('uncaughtException', (e) => {
   if (e.code === 'EPIPE') return;
   console.error('Uncaught:', e);
+  app.exit(1);
 });
 
 const configPath = path.join(app.getPath('userData'), 'config.json');
@@ -402,7 +403,7 @@ async function openLoginWindow() {
     action: 'allow',
     overrideBrowserWindowOptions: {
       width: 520, height: 660,
-      webPreferences: { session: claudeSession },
+      webPreferences: { session: claudeSession, contextIsolation: true, nodeIntegration: false, sandbox: true },
     },
   }));
 
