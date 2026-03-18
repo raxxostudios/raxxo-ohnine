@@ -36,7 +36,7 @@ async function checkForUpdate() {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 5000);
-    const res = await fetch('https://raxxo-studio-dev.vercel.app/ohnine-version.json', { signal: ctrl.signal });
+    const res = await fetch('https://studio.raxxo.shop/ohnine-version.json', { signal: ctrl.signal });
     clearTimeout(timer);
     if (!res.ok) return;
     const data = await res.json();
