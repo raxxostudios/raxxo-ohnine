@@ -165,8 +165,8 @@ function renderTrayBar(pct, label = null) {
         -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
       #wrap{display:flex;align-items:center;height:${cssH}px;padding:0 1px}
       img{height:${cssH}px;width:auto;flex-shrink:0;margin-right:4px}
-      .track{width:21px;height:9px;background:rgba(255,255,255,0.18);border-radius:2px;
-        overflow:hidden;flex-shrink:0;margin-right:-2px;display:${label ? 'none' : 'block'}}
+      .track{width:20px;height:9px;background:rgba(255,255,255,0.18);border-radius:2px;
+        overflow:hidden;flex-shrink:0;margin-right:3px;display:${label ? 'none' : 'block'}}
       .fill{height:100%;width:${p}%;background:${fillColor};border-radius:2px}
       .pct{color:rgba(255,255,255,${label ? '0.5' : '0.88'});
         font:${label ? '400' : '600'} 11px -apple-system,BlinkMacSystemFont,sans-serif;
