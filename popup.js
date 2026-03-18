@@ -119,7 +119,9 @@ function renderUsage(data) {
   sessionFill.style.background = fillColor(sPct);
   sessionPct.textContent = `${sPct}%`;
   sessionPct.className   = 'lane-pct ' + pctClass(sPct);
-  sessionReset.textContent = data.session.resetIn ? `Resets ${data.session.resetIn}` : '';
+  sessionReset.textContent = sPct === 9 ? '👀 Oh Nine. Literally.' :
+    sPct >= 100 ? '🚨 Oh Nein. Wait for reset.' :
+    data.session.resetIn ? `Resets ${data.session.resetIn}` : '';
 
   if (sPct >= 100) {
     laneCrab.classList.add('tired');

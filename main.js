@@ -262,18 +262,23 @@ async function fetchUsage() {
 
 // ─── Notifications ────────────────────────────────────────────────────────────
 const { Notification } = require('electron');
-const notified = { 80: false, 100: false };
+const notified = { 9: false, 80: false, 100: false };
 
 function maybeNotify(pct) {
   if (pct >= 100 && !notified[100]) {
     notified[100] = true;
     notified[80]  = true;
+    notified[9]   = true;
     new Notification({ title: 'OhNine — Oh Nein! 🚨', body: 'Session limit reached. Time to wait for a reset.' }).show();
   } else if (pct >= 80 && !notified[80]) {
     notified[80] = true;
+    notified[9]  = true;
     new Notification({ title: 'OhNine — Heads up 👀', body: "You're at 80%. Oh nein is coming." }).show();
-  } else if (pct < 80) {
-    notified[80] = false; notified[100] = false; // reset for next cycle
+  } else if (pct <= 9 && pct > 0 && !notified[9]) {
+    notified[9] = true;
+    new Notification({ title: 'OhNine. Literally. 🫠', body: "You're at 9%. This is the moment. Oh nein." }).show();
+  } else if (pct < 9) {
+    notified[9] = false; notified[80] = false; notified[100] = false;
   }
 }
 
