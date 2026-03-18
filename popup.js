@@ -244,7 +244,7 @@ pills.forEach(pill => {
 
 // ── Pin button ────────────────────────────────────────────────────────────────
 const pinBtn = $('pinBtn');
-const isMac = navigator.platform.toUpperCase().includes('MAC');
+const isMac = navigator.userAgent.includes('Mac');
 const labelPin   = isMac ? 'Keep on Top' : 'Always on Top';
 const labelUnpin = isMac ? 'Don\'t Keep on Top' : 'Disable Always on Top';
 

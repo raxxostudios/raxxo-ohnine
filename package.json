@@ -16,7 +16,11 @@
     "menubar",
     "tray"
   ],
-  "author": "RAXXO Studios",
+  "author": {
+    "name": "RAXXO Studios",
+    "email": "help@raxxo.shop"
+  },
+  "homepage": "https://raxxo.shop/pages/ohnine",
   "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
     "electron": "^41.0.2",
@@ -56,6 +60,11 @@
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "assets/icon.iconset",
+      "category": "Utility"
     },
     "files": [
       "main.js",

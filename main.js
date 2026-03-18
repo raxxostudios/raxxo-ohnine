@@ -174,7 +174,7 @@ function renderTrayBar(pct, label = null) {
         letter-spacing:-0.2px;flex-shrink:0;min-width:24px;text-align:right}
     </style></head><body>
     <div id="wrap">
-      <img src="file://${svgPath}">
+      <img src="file://${svgPath.replace(/\\/g, '/')}">
       <div class="track"><div class="fill"></div></div>
       <span class="pct">${displayText}</span>
     </div>
@@ -631,5 +631,5 @@ app.whenReady().then(async () => {
   startPolling(initCfg.hasOwnProperty('checkInterval') ? initCfg.checkInterval : 0);
 });
 
-app.on('window-all-closed', e => e.preventDefault()); // macOS tray app — keep running
+app.on('window-all-closed', e => e.preventDefault()); // tray app — keep running on all platforms (macOS, Windows, Linux)
 app.on('before-quit', () => { if (pollTimer) clearInterval(pollTimer); });
