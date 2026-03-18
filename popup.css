@@ -13,7 +13,7 @@ button:focus-visible { outline: none; }
   --muted:  #666;
   --text:   #ffffff;
   --sub:    #999;
-  --font:   -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font:   -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Ubuntu', 'Cantarell', 'Noto Sans', sans-serif;
 }
 
 body.theme-light {

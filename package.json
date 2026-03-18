@@ -64,7 +64,14 @@
     "linux": {
       "target": ["AppImage", "deb"],
       "icon": "assets/icon.iconset",
-      "category": "Utility"
+      "category": "Utility",
+      "desktop": {
+        "StartupWMClass": "OhNine",
+        "Comment": "Claude usage monitor for your menu bar"
+      }
+    },
+    "deb": {
+      "depends": ["libappindicator3-1", "libnotify4"]
     },
     "files": [
       "main.js",

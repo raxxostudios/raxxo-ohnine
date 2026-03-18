@@ -17,6 +17,7 @@ const configPath = path.join(app.getPath('userData'), 'config.json');
 let tray = null;
 let popupWindow = null;
 let loginWindow = null;
+let loginPending = false;
 let lastTrayPct = 0;
 let trayRenderSeq = 0;
 let isUpdating = false;
@@ -170,7 +171,7 @@ function renderTrayBar(pct, label = null) {
         overflow:hidden;flex-shrink:0;margin-right:3px;display:${label ? 'none' : 'block'}}
       .fill{height:100%;width:${p}%;background:${fillColor};border-radius:2px}
       .pct{color:rgba(255,255,255,${label ? '0.5' : '0.88'});
-        font:${label ? '400' : '600'} 11px -apple-system,BlinkMacSystemFont,sans-serif;
+        font:${label ? '400' : '600'} 11px -apple-system,BlinkMacSystemFont,'Segoe UI','Ubuntu','Noto Sans',sans-serif;
         letter-spacing:-0.2px;flex-shrink:0;min-width:24px;text-align:right}
     </style></head><body>
     <div id="wrap">
@@ -301,7 +302,8 @@ async function fetchUsage() {
 const { Notification } = require('electron');
 const notified = { 9: false, 80: false, 100: false };
 
-const notifIcon = path.join(__dirname, 'assets', 'icon.icns');
+const notifIcon = path.join(__dirname, 'assets',
+  process.platform === 'win32' ? 'icon.ico' : process.platform === 'darwin' ? 'icon.icns' : 'icon.iconset/icon_256x256.png');
 function notify(title, body) {
   new Notification({ title, body, icon: notifIcon }).show();
 }
@@ -389,6 +391,7 @@ function startPolling(sec=300) {
 // ─── Login window ─────────────────────────────────────────────────────────────
 async function openLoginWindow() {
   if (loginWindow && !loginWindow.isDestroyed()) { loginWindow.focus(); return; }
+  loginPending = true;
 
   const claudeSession = await getClaudeSession();
   loginWindow = new BrowserWindow({
@@ -425,7 +428,7 @@ async function openLoginWindow() {
     }
   }, 2000);
 
-  loginWindow.on('closed', () => { clearInterval(checkLogin); loginWindow = null; });
+  loginWindow.on('closed', () => { clearInterval(checkLogin); loginWindow = null; loginPending = false; });
 }
 
 // ─── Popup window ─────────────────────────────────────────────────────────────
@@ -445,11 +448,17 @@ function createPopupWindow(trayBounds) {
     x = pb.x;
     y = pb.y;
   } else {
-    // Position directly below the tray icon, horizontally centred on it
     const display = screen.getDisplayNearestPoint({ x: trayBounds.x, y: trayBounds.y });
     const workArea = display.workArea;
-    x = Math.round(trayBounds.x + trayBounds.width / 2 - W / 2);
-    y = Math.round(trayBounds.y + trayBounds.height + 4);
+    // Fallback if tray bounds are zero (Windows overflow tray)
+    const tb = (trayBounds.width === 0 && trayBounds.height === 0)
+      ? { x: workArea.x + workArea.width - W - 10, y: workArea.y + workArea.height - H - 10, width: 0, height: 0 }
+      : trayBounds;
+    x = Math.round(tb.x + tb.width / 2 - W / 2);
+    // macOS: popup below menu bar icon. Windows/Linux: popup above taskbar icon.
+    y = process.platform === 'darwin'
+      ? Math.round(tb.y + tb.height + 4)
+      : Math.round(tb.y - H - 4);
     x = Math.max(workArea.x, Math.min(x, workArea.x + workArea.width  - W));
     y = Math.max(workArea.y, Math.min(y, workArea.y + workArea.height - H));
   }
@@ -457,7 +466,7 @@ function createPopupWindow(trayBounds) {
   popupWindow = new BrowserWindow({
     width: W, height: H, x, y,
     frame: false, resizable: false, movable: true, alwaysOnTop: pinned,
-    skipTaskbar: true, transparent: true, show: false,
+    skipTaskbar: true, transparent: true, show: false, backgroundColor: '#0d0d0d',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true },
   });
   popupWindow.loadFile('popup.html');
@@ -465,7 +474,7 @@ function createPopupWindow(trayBounds) {
     if (!popupWindow || popupWindow.isDestroyed()) return;
     const c = loadConfig();
     if (c.pinned) return;
-    if (loginWindow && !loginWindow.isDestroyed()) return;
+    if (loginPending || (loginWindow && !loginWindow.isDestroyed())) return;
     popupWindow.hide();
   });
   popupWindow.on('moved', () => {
@@ -572,6 +581,11 @@ app.whenReady().then(async () => {
     return require('electron').Menu.buildFromTemplate([
       { label: `OhNine v${app.getVersion()}`, enabled: false },
       { type: 'separator' },
+      ...(process.platform === 'linux' ? [{
+        label: 'Show OhNine', click: () => {
+          if (popupWindow && !popupWindow.isDestroyed()) { popupWindow.show(); popupWindow.focus(); }
+        }
+      }] : []),
       { label: 'Sync Now', click: () => doUpdate(true) },
       { label: 'Open claude.ai', click: () => shell.openExternal('https://claude.ai') },
       { type: 'separator' },
@@ -585,10 +599,11 @@ app.whenReady().then(async () => {
           }
         }
       },
-      { label: 'Launch at Login', type: 'checkbox',
+      ...(process.platform !== 'linux' ? [{
+        label: 'Launch at Login', type: 'checkbox',
         checked: app.getLoginItemSettings().openAtLogin,
         click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked })
-      },
+      }] : []),
       { type: 'separator' },
       { label: 'Report a Bug', click: () => {
           const v = app.getVersion();
@@ -609,6 +624,10 @@ app.whenReady().then(async () => {
   }
 
   tray.on('right-click', () => tray.popUpContextMenu(buildContextMenu()));
+  if (process.platform === 'linux') tray.setContextMenu(buildContextMenu());
+  if (process.platform === 'win32') {
+    tray.on('double-click', (e, bounds) => tray.emit('click', e, bounds));
+  }
 
   tray.on('click', (e, bounds) => {
     if (!popupWindow || popupWindow.isDestroyed()) {
