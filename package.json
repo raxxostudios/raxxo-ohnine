@@ -1,7 +1,7 @@
 {
   "name": "ohnine",
   "productName": "OhNine",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "description": "Oh Nine. Oh Nein. The menu bar app that tells you how much Claude you have left before it tells you no.",
   "main": "main.js",
   "scripts": {

@@ -51,7 +51,17 @@ async function checkForUpdate() {
         if (r < l) break;
       }
       if (newer) {
-        updateInfo = { available: true, url: data.url || 'https://raxxo.shop' };
+        // Pick platform-specific URL if available
+        let url = data.url || 'https://raxxo.shop';
+        if (data.urls) {
+          const arch = process.arch; // arm64 or x64
+          const platform = process.platform; // darwin, win32, linux
+          if (platform === 'darwin' && arch === 'arm64' && data.urls['mac-arm64']) url = data.urls['mac-arm64'];
+          else if (platform === 'darwin' && data.urls['mac-x64']) url = data.urls['mac-x64'];
+          else if (platform === 'win32' && data.urls['win']) url = data.urls['win'];
+          else if (platform === 'linux' && data.urls['linux']) url = data.urls['linux'];
+        }
+        updateInfo = { available: true, url };
       }
     }
   } catch(e) { /* silent */ }
@@ -263,16 +273,15 @@ async function fetchUsage() {
       }
 
       try {
-        await new Promise(r => setTimeout(r, 5000)); // let React render usage data
+        await new Promise(r => setTimeout(r, 6000)); // let React render usage data
         const result = await win.webContents.executeJavaScript(`
           (() => {
             const text = document.body ? document.body.innerText : '';
             const pcts = [...text.matchAll(/(\\d+)%\\s+used/gi)].map(m => parseInt(m[1]));
             const resets = [...text.matchAll(/Resets\\s+([^\\n]+)/gi)].map(m => m[1].trim());
-            // Read theme from html[data-mode] and font from body class
             const mode = document.documentElement.getAttribute('data-mode') || '';
             const bodyClass = document.body.className || '';
-            const fontMatch = bodyClass.match(/\bfont-(\w+)\b/);
+            const fontMatch = bodyClass.match(/\\bfont-(\\w+)\\b/);
             const font = fontMatch ? fontMatch[1] : 'ui';
             return { pcts, resets, url: location.href, ok: pcts.length > 0,
               appearance: { mode, font } };
@@ -418,17 +427,27 @@ async function openLoginWindow() {
     const loggedIn = await isLoggedIn();
     if (loggedIn) {
       clearInterval(checkLogin);
-      loginWindow.close();
-      loginWindow = null;
+      // Navigate to usage page so user can verify/switch workspace before closing
+      loginWindow.setTitle('Switch to your paid workspace if needed, then close this window');
+      loginWindow.loadURL('https://claude.ai/settings/usage');
+      // Don't auto-close - let user close manually after picking workspace
+      // Polling starts when user closes the login window (see 'closed' handler below)
       if (popupWindow && !popupWindow.isDestroyed()) {
         popupWindow.webContents.send('logged-in');
       }
-      const c = loadConfig();
-      startPolling(c.hasOwnProperty('checkInterval') ? c.checkInterval : 0);
     }
   }, 2000);
 
-  loginWindow.on('closed', () => { clearInterval(checkLogin); loginWindow = null; loginPending = false; });
+  loginWindow.on('closed', async () => {
+    clearInterval(checkLogin);
+    loginWindow = null;
+    loginPending = false;
+    // When user closes the window after picking workspace, start syncing
+    if (await isLoggedIn()) {
+      const c = loadConfig();
+      startPolling(c.hasOwnProperty('checkInterval') ? c.checkInterval : 60);
+    }
+  });
 }
 
 // ─── Popup window ─────────────────────────────────────────────────────────────
@@ -588,6 +607,19 @@ app.whenReady().then(async () => {
       }] : []),
       { label: 'Sync Now', click: () => doUpdate(true) },
       { label: 'Open claude.ai', click: () => shell.openExternal('https://claude.ai') },
+      { label: 'Switch Workspace', click: async () => {
+          const claudeSession = await getClaudeSession();
+          const wsWindow = new BrowserWindow({
+            width: 520, height: 680,
+            title: 'Switch to the workspace you want to track, then close this window',
+            webPreferences: { session: claudeSession },
+          });
+          wsWindow.loadURL('https://claude.ai/settings/usage');
+          wsWindow.on('closed', () => {
+            doUpdate(true);
+          });
+        }
+      },
       { type: 'separator' },
       { label: 'Keep on Top', type: 'checkbox', checked: cfg.pinned || false,
         click: (item) => {
