@@ -5,3 +5,4 @@ config.json
 dist/
 out/
 .vercel
+_gitignore/

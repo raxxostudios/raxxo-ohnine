@@ -64,7 +64,7 @@ OhNine reads your usage data directly from claude.ai using your own browser sess
 - Your Claude session credentials are stored locally by the Electron framework
 - Everything stays on your device
 
-Full privacy policy: https://raxxo.shop/policies/privacy-policy
+Full privacy policy: https://raxxo.shop/pages/datenschutz
 
 ## Requirements
 

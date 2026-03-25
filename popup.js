@@ -22,8 +22,8 @@ $('refreshBtn').addEventListener('click', handleRefresh);
 $('aboutBtn').addEventListener('click', showAbout);
 $('aboutBackBtn').addEventListener('click', showMain);
 $('aboutBackBtn2').addEventListener('click', showMain);
-$('legalPrivacyBtn').addEventListener('click', () => window.api.openUrl('https://raxxo.shop/policies/privacy-policy'));
-$('legalTosBtn').addEventListener('click', () => window.api.openUrl('https://raxxo.shop/policies/terms-of-service'));
+$('legalPrivacyBtn').addEventListener('click', () => window.api.openUrl('https://raxxo.shop/pages/datenschutz'));
+$('legalTosBtn').addEventListener('click', () => window.api.openUrl('https://raxxo.shop/pages/terms'));
 $('checkUpdateBtn').addEventListener('click', async () => {
   const btn = $('checkUpdateBtn');
   btn.textContent = 'Checking...';
