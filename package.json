@@ -23,7 +23,7 @@
   "homepage": "https://raxxo.shop/pages/ohnine",
   "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
-    "electron": "^41.0.2",
+    "electron": "^41.0.4",
     "electron-builder": "^25.1.8"
   },
   "build": {
@@ -49,8 +49,16 @@
       "icon": "assets/icon.icns",
       "iconSize": 80,
       "contents": [
-        { "x": 135, "y": 200 },
-        { "x": 405, "y": 200, "type": "link", "path": "/Applications" }
+        {
+          "x": 135,
+          "y": 200
+        },
+        {
+          "x": 405,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
       ],
       "window": {
         "width": 540,
@@ -62,7 +70,10 @@
       "icon": "assets/icon.ico"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "assets/icon.iconset",
       "category": "Utility",
       "desktop": {
@@ -71,7 +82,10 @@
       }
     },
     "deb": {
-      "depends": ["libappindicator3-1", "libnotify4"]
+      "depends": [
+        "libappindicator3-1",
+        "libnotify4"
+      ]
     },
     "files": [
       "main.js",
