@@ -30,6 +30,8 @@ let usageData = {
 };
 
 let updateInfo = { available: false, url: '' };
+let retryCount = 0;
+const MAX_RETRIES = 5;
 
 // ─── Version check ────────────────────────────────────────────────────────────
 async function checkForUpdate() {
@@ -202,6 +204,7 @@ function renderTrayBar(pct, label = null) {
         try {
           const raw = await win.webContents.capturePage();
           win.destroy();
+          try { fs.unlinkSync(tmpHtml); } catch(e) {}
           if (!raw || raw.isEmpty()) { resolve(null); return; }
           // captured pixels = cssH × dpr; scaleFactor = dpr → displays at cssH pt
           resolve(nativeImage.createFromBuffer(raw.toPNG(), { scaleFactor: dpr }));
@@ -321,6 +324,7 @@ function maybeNotify(pct) {
     notify('OhNine. Oh Nein.', 'Session limit reached. Time to wait for a reset.');
   } else if (pct >= 91 && !notified[9]) {
     notified[9] = true;
+    notified[80] = true;
     notify('OhNine. Literally.', '9% left. This is the moment. Oh nein.');
   } else if (pct >= 80 && !notified[80]) {
     notified[80] = true;
@@ -350,10 +354,17 @@ async function doUpdate(showSyncing = false) {
 
   const raw = await fetchUsage();
   if (!raw || !raw.pcts || raw.pcts.length === 0) {
+    retryCount++;
+    if (retryCount >= MAX_RETRIES) {
+      if (tray) { updateTray(lastTrayPct, 'Check connection'); }
+      isUpdating = false;
+      return;
+    }
     if (tray) { updateTray(lastTrayPct, 'retry…'); }
     isUpdating = false; setTimeout(doUpdate, 60000);
     return;
   }
+  retryCount = 0;
 
   const [sPct=0, wPct=0, nPct=0] = raw.pcts;
   const [sReset='', wReset='', nReset=''] = raw.resets;
@@ -446,7 +457,7 @@ async function openLoginWindow() {
     // When user closes the window after picking workspace, start syncing
     if (await isLoggedIn()) {
       const c = loadConfig();
-      startPolling(c.hasOwnProperty('checkInterval') ? c.checkInterval : 60);
+      startPolling(c.hasOwnProperty('checkInterval') ? c.checkInterval : 0);
     }
   });
 }
