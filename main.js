@@ -633,7 +633,7 @@ app.whenReady().then(async () => {
           const wsWindow = new BrowserWindow({
             width: 520, height: 680,
             title: 'Switch to the workspace you want to track, then close this window',
-            webPreferences: { session: claudeSession },
+            webPreferences: { session: claudeSession, contextIsolation: true, nodeIntegration: false },
           });
           wsWindow.loadURL('https://claude.ai/settings/usage');
           wsWindow.on('closed', () => {
