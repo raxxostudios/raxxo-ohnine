@@ -248,7 +248,7 @@ async function fetchUsage() {
       show: false,
       webPreferences: {
         session: claudeSession,
-        contextIsolation: false,
+        contextIsolation: true,
         nodeIntegration: false,
         javascript: true,
       },
@@ -264,8 +264,6 @@ async function fetchUsage() {
 
     win.webContents.once('did-finish-load', async () => {
       const currentUrl = win.webContents.getURL();
-      console.log('Loaded:', currentUrl);
-
       // If redirected to login, session expired
       if (currentUrl.includes('/login')) {
         done(null);
@@ -287,8 +285,6 @@ async function fetchUsage() {
               appearance: { mode, font } };
           })()
         `);
-        console.log('Scrape result:', JSON.stringify(result));
-        console.log('Appearance:', JSON.stringify(result.appearance));
         done(result);
       } catch(e) {
         console.error('Scrape error:', e.message);
@@ -340,7 +336,6 @@ async function doUpdate(showSyncing = false) {
   isUpdating = true;
   try {
   if (!await isLoggedIn()) {
-    console.log('Not logged in');
     if (tray) {
       tray.setToolTip('OhNine. Click to sign in.');
       updateTray(lastTrayPct, 'sign in');
@@ -351,14 +346,10 @@ async function doUpdate(showSyncing = false) {
     isUpdating = false; return;
   }
 
-  console.log('Fetching usage…');
   if (showSyncing && tray) { updateTray(lastTrayPct, 'syncing…'); }
 
   const raw = await fetchUsage();
-  console.log('Raw result:', JSON.stringify(raw));
-
   if (!raw || !raw.pcts || raw.pcts.length === 0) {
-    console.log('No usage data scraped — retrying in 60s');
     if (tray) { updateTray(lastTrayPct, 'retry…'); }
     isUpdating = false; setTimeout(doUpdate, 60000);
     return;
@@ -390,11 +381,10 @@ let pollTimer = null;
 function startPolling(sec=300) {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = null;
-  if (sec <= 0) { console.log('Polling off'); return; }
+  if (sec <= 0) return;
   const actual = Math.max(sec, 30); // minimum 30s — each fetch takes ~6s
-  console.log(`Polling every ${actual}s`);
   doUpdate();
-  pollTimer = setInterval(() => { console.log('Poll tick'); doUpdate(); }, actual * 1000);
+  pollTimer = setInterval(() => doUpdate(), actual * 1000);
 }
 
 // ─── Login window ─────────────────────────────────────────────────────────────
@@ -406,18 +396,29 @@ async function openLoginWindow() {
   loginWindow = new BrowserWindow({
     width: 520, height: 680,
     title: 'Sign in to Claude',
-    webPreferences: { session: claudeSession },
+    webPreferences: { session: claudeSession, contextIsolation: true, nodeIntegration: false },
   });
 
-  // Inject a minimal address bar so it feels like a real browser
-  // Make OAuth popups (e.g. Google sign-in) work
-  loginWindow.webContents.setWindowOpenHandler(() => ({
-    action: 'allow',
-    overrideBrowserWindowOptions: {
-      width: 520, height: 660,
-      webPreferences: { session: claudeSession, contextIsolation: true, nodeIntegration: false, sandbox: true },
-    },
-  }));
+  // Make OAuth popups (e.g. Google sign-in) work, but only for known providers
+  const allowedOAuthPatterns = [
+    /^https:\/\/([a-z0-9-]+\.)?google\.com\//,
+    /^https:\/\/accounts\.google\.com\//,
+    /^https:\/\/([a-z0-9-]+\.)?clerk\.com\//,
+    /^https:\/\/([a-z0-9-]+\.)?claude\.ai\//,
+    /^https:\/\/([a-z0-9-]+\.)?anthropic\.com\//,
+  ];
+  loginWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (typeof url === 'string' && allowedOAuthPatterns.some(re => re.test(url))) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 520, height: 660,
+          webPreferences: { session: claudeSession, contextIsolation: true, nodeIntegration: false, sandbox: true },
+        },
+      };
+    }
+    return { action: 'deny' };
+  });
 
   loginWindow.loadURL('https://claude.ai/login');
 
@@ -541,7 +542,11 @@ ipcMain.handle('toggle-pin', () => {
   saveConfig(cfg);
   return cfg.pinned;
 });
-ipcMain.handle('set-theme', (_, t) => { const cfg = loadConfig(); cfg.theme = t; saveConfig(cfg); });
+ipcMain.handle('set-theme', (_, t) => {
+  const allowed = ['dark', 'light', 'system', ''];
+  if (typeof t !== 'string' || !allowed.includes(t)) return;
+  const cfg = loadConfig(); cfg.theme = t; saveConfig(cfg);
+});
 // Demo mode: Shift+0 through Shift+9 in popup to preview states (for screenshots/recording)
 const fakeStates = [
   { s: 0,   w: 5,  n: 1,  sr: 'in 4 hr 58 min', wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 0 = fresh
@@ -556,7 +561,8 @@ const fakeStates = [
   { s: 100, w: 87, n: 62, sr: 'in 15 min',      wr: 'Fri 4:00 PM', nr: 'Tue 8:00 PM' }, // 9 = Oh Nein. (walkback)
 ];
 ipcMain.handle('fake-state', (_, n) => {
-  const f = fakeStates[Math.min(n, 9)];
+  if (typeof n !== 'number' || !Number.isFinite(n) || n < 0 || n > 9) return;
+  const f = fakeStates[Math.min(Math.round(n), 9)];
   // Reset notification flags so they fire fresh
   notified[9] = false; notified[80] = false; notified[100] = false;
   usageData = {
@@ -573,14 +579,18 @@ ipcMain.handle('fake-state', (_, n) => {
   }
 });
 ipcMain.handle('set-interval', (_, sec) => {
+  if (typeof sec !== 'number' || !Number.isFinite(sec)) return;
+  const clamped = Math.max(0, Math.min(Math.round(sec), 3600));
   const cfg = loadConfig();
-  cfg.checkInterval = sec;
+  cfg.checkInterval = clamped;
   saveConfig(cfg);
-  startPolling(sec);
+  startPolling(clamped);
 });
 ipcMain.handle('logout', async () => {
   const s = await getClaudeSession();
   await s.clearStorageData({ storages: ['cookies'] });
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
   usageData = { session: { pct:0, resetIn:'' }, weekly: { pct:0, resetAt:'' }, sonnet: { pct:0, resetAt:'' }, lastUpdated: null };
   lastTrayPct = 0;
   if (tray) { updateTray(0, 'sign in'); }
