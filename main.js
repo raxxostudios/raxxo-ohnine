@@ -169,7 +169,7 @@ function renderTrayBar(pct, label = null) {
     const dpr     = screen.getPrimaryDisplay().scaleFactor; // 2 on Retina
 
     const cssH = 16;
-    const fillColor = p >= 100 ? '#ff3040' : p >= 75 ? '#ff6b00' : p >= 50 ? '#ffcc00' : '#ffffff';
+    const fillColor = p >= 100 ? '#FF0079' : p >= 75 ? '#ff6b00' : p >= 50 ? '#ffcc00' : '#e3fc02';
     const cssW = label ? 100 : 88;
     const displayText = label || `${p}%`;
 
@@ -179,11 +179,11 @@ function renderTrayBar(pct, label = null) {
         -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
       #wrap{display:flex;align-items:center;height:${cssH}px;padding:0 1px}
       img{height:${cssH}px;width:auto;flex-shrink:0;margin-right:4px}
-      .track{width:20px;height:9px;background:rgba(255,255,255,0.18);border-radius:2px;
+      .track{width:20px;height:9px;background:rgba(245,245,247,0.18);border-radius:2px;
         overflow:hidden;flex-shrink:0;margin-right:3px;display:${label ? 'none' : 'block'}}
       .fill{height:100%;width:${p}%;background:${fillColor};border-radius:2px}
-      .pct{color:rgba(255,255,255,${label ? '0.5' : '0.88'});
-        font:${label ? '400' : '600'} 11px -apple-system,BlinkMacSystemFont,'Segoe UI','Ubuntu','Noto Sans',sans-serif;
+      .pct{color:rgba(245,245,247,${label ? '0.5' : '0.88'});
+        font:${label ? '400' : '600'} 11px 'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI','Ubuntu','Noto Sans',sans-serif;
         letter-spacing:-0.2px;flex-shrink:0;min-width:24px;text-align:right}
     </style></head><body>
     <div id="wrap">
@@ -512,7 +512,7 @@ function createPopupWindow(trayBounds) {
     y = Math.max(workArea.y, Math.min(y, workArea.y + workArea.height - H));
   }
 
-  const themeBg = cfg.theme === 'light' ? '#f5f4ef' : '#0d0d0d';
+  const themeBg = cfg.theme === 'light' ? '#f5f4ef' : '#1f1f21';
   popupWindow = new BrowserWindow({
     width: W, height: H, x, y,
     frame: false, resizable: false, movable: true, alwaysOnTop: pinned,
