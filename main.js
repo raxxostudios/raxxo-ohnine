@@ -512,10 +512,11 @@ function createPopupWindow(trayBounds) {
     y = Math.max(workArea.y, Math.min(y, workArea.y + workArea.height - H));
   }
 
+  const themeBg = cfg.theme === 'light' ? '#f5f4ef' : '#0d0d0d';
   popupWindow = new BrowserWindow({
     width: W, height: H, x, y,
     frame: false, resizable: false, movable: true, alwaysOnTop: pinned,
-    skipTaskbar: true, transparent: true, show: false, backgroundColor: '#0d0d0d',
+    skipTaskbar: true, transparent: true, show: false, backgroundColor: themeBg,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true },
   });
   popupWindow.loadFile('popup.html');
