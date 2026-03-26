@@ -2,58 +2,28 @@
 
 **Don't get caught at zero.**
 
-OhNine sits in your macOS menu bar and tracks your Claude usage limits in real-time. Session limits, weekly caps, model-specific tracking. Know before Claude says no.
+OhNine is a menu bar app that tracks your Claude AI usage limits in real time. Session usage, weekly caps, model-specific limits. One glance tells you exactly where you stand before Claude says no.
 
 Oh nine. Oh nein.
 
----
-
-## Install (macOS)
-
-1. Download the `.dmg` for your Mac (Apple Silicon or Intel)
-2. Open the `.dmg` and drag OhNine into Applications
-3. **First launch security warning:** macOS will say the app "can't be opened because Apple cannot check it for malicious software." This is normal for indie apps without a $99/year Apple Developer certificate.
-
-   **How to open it:**
-   - Right-click (or Control-click) OhNine in Applications
-   - Click **Open**
-   - macOS asks again. Click **Open**
-   - Done. It opens normally from now on.
-
-   See `screenshots/install-mac.png` for a visual guide.
-
-4. Click the OhNine icon in your menu bar
-5. Sign in with your Claude account
-6. Done. OhNine starts tracking.
-
-## Install (Windows)
-
-1. Download the `.exe` installer
-2. Double-click to run. Windows SmartScreen may show "Windows protected your PC." This is normal for new apps.
-   - Click **More info**
-   - Click **Run anyway**
-
-   See `screenshots/install-windows.png` for a visual guide.
-
-3. Find OhNine in your system tray, sign in with your Claude account. Done.
+Built by [RAXXO Studios](https://raxxo.shop) in Berlin.
 
 ---
-
-## What it tracks
-
-- **Session usage** - live progress bar with mascot that walks along and gets tired at 100%
-- **Weekly limits** - all models and Sonnet-specific caps
-- **Auto-sync** - every 30 seconds to once an hour, or manual
-- **Notifications** - native macOS alerts at 80%, 91% (Oh Nine. Literally.), and 100% (Oh Nein.)
 
 ## Features
 
-- Dark and light mode (toggle with one click)
-- Keep on Top / pin window (stays visible while you work)
-- Right-click tray menu: Sync Now, Open claude.ai, Keep on Top, Launch at Login, About, Quit
-- Check for updates built in (About view or automatic on startup)
-- AM/PM time format for last sync
-- Color-coded bars: green, yellow, orange, red based on usage level
+- **Live session tracking** with animated progress bar and Claw'd mascot that walks along (and gets tired at 100%)
+- **Weekly limit bars** for all models and Sonnet-specific caps
+- **Auto-sync intervals** from 30 seconds to 1 hour, or manual/on-demand
+- **Native notifications** at 80%, 91% ("Oh Nine. Literally."), and 100% ("Oh Nein.")
+- **Dark and light mode** with one-click toggle (adapts all colors, bars, and UI)
+- **Pin/Keep on Top** so the window stays visible while you work
+- **Tray icon** with live usage bar and percentage baked into the menu bar
+- **Right-click menu**: Sync Now, Open claude.ai, Switch Workspace, Keep on Top, Launch at Login, Report a Bug, About, Quit
+- **Update checker** built in (checks on startup, manual check in About view)
+- **Font options**: system default, sans-serif, OpenDyslexic (reads from Claude settings)
+- **Color-coded bars**: green (safe), yellow (50%+), orange (75%+), red (100%)
+- **Cross-platform**: macOS (Apple Silicon + Intel), Windows, Linux
 
 ## Privacy
 
@@ -66,9 +36,43 @@ OhNine reads your usage data directly from claude.ai using your own browser sess
 
 Full privacy policy: https://raxxo.shop/pages/datenschutz
 
+---
+
+## Install (macOS)
+
+1. Download the `.dmg` for your Mac (Apple Silicon or Intel) from [raxxo.shop](https://raxxo.shop)
+2. Open the `.dmg` and drag OhNine into Applications
+3. **First launch security warning:** macOS will say the app "can't be opened because Apple cannot check it for malicious software." This is normal for indie apps without a paid Apple Developer certificate.
+
+   **How to open it:**
+   - Right-click (or Control-click) OhNine in Applications
+   - Click **Open**
+   - macOS asks again, click **Open**
+   - Done. It opens normally from now on.
+
+4. Click the OhNine icon in your menu bar
+5. Sign in with your Claude account (one-time)
+6. Done. OhNine starts tracking.
+
+## Install (Windows)
+
+1. Download the `.exe` installer from [raxxo.shop](https://raxxo.shop)
+2. Double-click to run. Windows SmartScreen may show "Windows protected your PC."
+   - Click **More info**
+   - Click **Run anyway**
+3. Find OhNine in your system tray, sign in with your Claude account. Done.
+
+## Install (Linux)
+
+1. Download the `.AppImage` or `.deb` package
+2. For AppImage: `chmod +x OhNine*.AppImage && ./OhNine*.AppImage`
+3. For Debian/Ubuntu: `sudo dpkg -i ohnine*.deb`
+
+---
+
 ## Requirements
 
-- macOS 12+ (Apple Silicon and Intel) or Windows 10+
+- macOS 12+ (Apple Silicon and Intel), Windows 10+, or Linux (x64)
 - Active Claude Pro or Team subscription
 - Internet connection (to reach claude.ai)
 
@@ -79,6 +83,8 @@ Full privacy policy: https://raxxo.shop/pages/datenschutz
 ### Run from source
 
 ```bash
+git clone <repo-url>
+cd raxxo-ohnine
 npm install
 npm start
 ```
@@ -86,7 +92,13 @@ npm start
 ### Build installers
 
 ```bash
-npm run build      # .dmg (arm64 + x64) via electron-builder
+npm run build      # .dmg (arm64 + x64), .exe, .AppImage, .deb via electron-builder
+```
+
+### Dev mode
+
+```bash
+npm run dev        # launches with --dev flag
 ```
 
 ### Generate screenshots
@@ -111,38 +123,42 @@ In the popup, hold `Ctrl+Shift` plus:
 
 ### Version check system
 
-The app checks `raxxo-studio-dev.vercel.app/ohnine-version.json` on startup.
+The app checks `studio.raxxo.shop/ohnine-version.json` on startup.
 
 To release a new version:
 1. Bump version in `package.json`
 2. `npm run build`
 3. Update `public/ohnine-version.json` in the `raxxo-studios` repo
-4. Deploy: `npx vercel link --yes --project raxxo-studio-dev && npx vercel --prod --yes`
-5. Re-link: `npx vercel link --yes --project raxxo-studio`
-6. Upload new `.dmg` to Shopify product page
+4. Deploy to Vercel
+5. Upload new installers to Shopify product page
 
 ### Project structure
 
 ```
-main.js           - Tray, polling, scraping, notifications, login, context menu
-popup.html        - Popup UI (360x390px)
-popup.css         - Styles, themes, animations
-popup.js          - UI logic, rendering, pills, pin, theme
-preload.js        - IPC bridge (security boundary)
+main.js           Tray, polling, scraping, notifications, login, context menu
+popup.html        Popup UI (360x390px)
+popup.css         Styles, themes, animations
+popup.js          UI logic, rendering, pills, pin, theme
+preload.js        IPC bridge (security boundary)
 assets/
-  clawd.svg       - Mascot
-  icon.icns       - App icon (all sizes)
-  dmg-bg.png      - DMG installer background
+  clawd.svg       Claw'd mascot
+  icon.icns       macOS app icon
+  icon.ico        Windows app icon
+  dmg-bg.png      DMG installer background
 scripts/
-  make-icon-node.js       - Generate app icon
-  make-dmg-bg.js          - Generate DMG background
-  make-install-guides.js  - Generate install guide images
-  take-screenshots.js     - Generate all app state screenshots
-screenshots/              - Marketing images (12 states + 2 install guides)
-dist/                     - Built .dmg files
+  make-icon-node.js       Generate app icon
+  make-dmg-bg.js          Generate DMG background
+  make-install-guides.js  Generate install guide images
+  take-screenshots.js     Generate all app state screenshots
+screenshots/              Marketing images (12 states + 2 install guides)
+dist/                     Built installers
 ```
 
 ---
+
+## Version
+
+Current: **1.0.4**
 
 ## License
 
