@@ -1,6 +1,6 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 button, input { outline: none; }
-button:focus-visible { outline: none; }
+button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 
 :root {
   --bg:     #0d0d0d;
@@ -48,7 +48,7 @@ html, body { width: 360px; height: 390px; background: transparent; overflow: hid
 #app {
   width: 360px; height: 390px;
   background: var(--bg);
-  border: 1px solid #2a2a2a; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
   display: flex; flex-direction: column;
   box-shadow: 0 20px 60px rgba(0,0,0,0.9);
 }
@@ -161,7 +161,7 @@ html, body { width: 360px; height: 390px; background: transparent; overflow: hid
   transition: all 0.15s;
 }
 .interval-pill:hover { border-color: var(--green); color: var(--green); }
-.interval-pill.active { border-color: var(--green); color: var(--green); background: rgba(227,252,2,0.08); }
+.interval-pill.active { border-color: var(--green); color: var(--green); background: color-mix(in srgb, var(--green) 8%, transparent); }
 .oneoff-pill:hover { border-color: #ff0079 !important; color: #ff0079 !important; }
 .oneoff-pill.active { border-color: #ff0079 !important; color: #ff0079 !important; background: rgba(255,0,121,0.1) !important; }
 .interval-label.oneoff-active { color: #ff0079; }
@@ -188,7 +188,7 @@ html, body { width: 360px; height: 390px; background: transparent; overflow: hid
   font-family: var(--font); font-size: 12px; padding: 7px 16px; border-radius: 6px;
   cursor: pointer; transition: background 0.15s;
 }
-.primary-btn:hover { background: rgba(26,199,127,0.1); }
+.primary-btn:hover { background: color-mix(in srgb, var(--green) 10%, transparent); }
 
 /* ── About view ── */
 #aboutView { display: flex; flex-direction: column; flex: 1; min-height: 0; }

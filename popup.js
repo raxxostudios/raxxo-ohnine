@@ -153,14 +153,14 @@ function renderUsage(data) {
   weeklyFill.style.background = fillColor(wPct);
   weeklyPct.textContent = `${wPct}%`;
   weeklyPct.className   = 'compact-pct ' + pctClass(wPct);
-  weeklyReset.textContent = data.weekly.resetAt ? `Resets ${data.weekly.resetAt}` : '';
+  weeklyReset.textContent = data.weekly?.resetAt ? `Resets ${data.weekly.resetAt}` : '';
 
   // Sonnet
   sonnetFill.style.width      = `${nPct}%`;
   sonnetFill.style.background = fillColor(nPct);
   sonnetPct.textContent = `${nPct}%`;
   sonnetPct.className   = 'compact-pct ' + pctClass(nPct);
-  sonnetReset.textContent = data.sonnet.resetAt ? `Resets ${data.sonnet.resetAt}` : '';
+  sonnetReset.textContent = data.sonnet?.resetAt ? `Resets ${data.sonnet.resetAt}` : '';
 
   if (data.lastUpdated) {
     lastUpdated.textContent = `last sync ${fmtTime(data.lastUpdated)}`;

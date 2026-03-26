@@ -263,13 +263,13 @@ async function fetchUsage() {
       resolve(result);
     };
 
-    const timeoutId = setTimeout(() => done(null), 25000);
+    const timeoutId = setTimeout(() => done({ error: 'timeout', message: 'Page took too long to load' }), 25000);
 
     win.webContents.once('did-finish-load', async () => {
       const currentUrl = win.webContents.getURL();
       // If redirected to login, session expired
       if (currentUrl.includes('/login')) {
-        done(null);
+        done({ error: 'session_expired', message: 'Session expired. Sign in again.' });
         return;
       }
 
@@ -288,16 +288,21 @@ async function fetchUsage() {
               appearance: { mode, font } };
           })()
         `);
+        if (!result || !result.ok) {
+          done({ error: 'page_changed', message: 'Could not read usage data. Page layout may have changed.' });
+          return;
+        }
         done(result);
       } catch(e) {
         console.error('Scrape error:', e.message);
-        done(null);
+        done({ error: 'scrape_failed', message: 'Failed to read page content' });
       }
     });
 
     win.webContents.on('did-fail-load', (e, code, desc) => {
       console.error('Load failed:', code, desc);
-      done(null);
+      const isNetwork = code === -6 || code === -2 || code === -3 || code === -106 || code === -105 || code === -7;
+      done({ error: isNetwork ? 'network' : 'load_failed', message: isNetwork ? 'No internet connection' : `Page load failed (${desc})` });
     });
 
     win.loadURL('https://claude.ai/settings/usage', {
@@ -353,10 +358,23 @@ async function doUpdate(showSyncing = false) {
   if (showSyncing && tray) { updateTray(lastTrayPct, 'syncing…'); }
 
   const raw = await fetchUsage();
-  if (!raw || !raw.pcts || raw.pcts.length === 0) {
+  if (!raw || raw.error || !raw.pcts || raw.pcts.length === 0) {
+    // Handle session expired separately (don't retry, prompt login)
+    if (raw && raw.error === 'session_expired') {
+      if (tray) { updateTray(lastTrayPct, 'sign in'); }
+      if (popupWindow && !popupWindow.isDestroyed()) {
+        popupWindow.webContents.send('login-required');
+      }
+      isUpdating = false;
+      return;
+    }
     retryCount++;
+    const errorLabel = raw && raw.error === 'network' ? 'No connection'
+      : raw && raw.error === 'timeout' ? 'Timed out'
+      : raw && raw.error === 'page_changed' ? 'Page changed'
+      : 'Sync failed';
     if (retryCount >= MAX_RETRIES) {
-      if (tray) { updateTray(lastTrayPct, 'Check connection'); }
+      if (tray) { updateTray(lastTrayPct, errorLabel); }
       isUpdating = false;
       return;
     }
