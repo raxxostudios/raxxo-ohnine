@@ -6,3 +6,6 @@ dist/
 out/
 .vercel
 _gitignore/
+.env
+.env.*
+.env.local

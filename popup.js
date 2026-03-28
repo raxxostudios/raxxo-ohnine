@@ -187,7 +187,7 @@ async function handleRefresh() {
     const data = await window.api.refreshNow();
     if (data && data.lastUpdated) renderUsage(data);
   } catch(e) {
-    console.error('handleRefresh failed:', e);
+    console.error('handleRefresh failed:', e.message || e);
     lastUpdated.textContent = 'sync failed';
   }
   finally {
@@ -212,11 +212,16 @@ const intervalLabel = $('intervalLabel');
 
 function setOneoffMode(on) {
   oneoffPill.classList.toggle('active', on);
+  oneoffPill.setAttribute('aria-pressed', String(on));
   intervalLabel.classList.toggle('oneoff-active', on);
 }
 
 function setActivePill(sec) {
-  pills.forEach(p => p.classList.toggle('active', parseInt(p.dataset.sec) === sec));
+  pills.forEach(p => {
+    const active = parseInt(p.dataset.sec) === sec;
+    p.classList.toggle('active', active);
+    p.setAttribute('aria-pressed', String(active));
+  });
   setOneoffMode(sec === 0);
 }
 
@@ -306,7 +311,7 @@ async function init() {
 }
 
 init().catch(e => {
-  console.error('init failed:', e);
+  console.error('init failed:', e.message || e);
   showLogin();
 });
 

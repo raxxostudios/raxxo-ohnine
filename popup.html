@@ -79,21 +79,21 @@
       <div class="interval-row">
         <span class="interval-label" id="intervalLabel">Auto-sync</span>
         <div class="interval-pills">
-          <button class="interval-pill oneoff-pill" id="oneoffPill" data-tip="Sync once, no auto">manual</button>
-          <button class="interval-pill" data-sec="30">30s</button>
-          <button class="interval-pill" data-sec="60">1m</button>
-          <button class="interval-pill" data-sec="120">2m</button>
-          <button class="interval-pill" data-sec="300">5m</button>
-          <button class="interval-pill" data-sec="600">10m</button>
-          <button class="interval-pill" data-sec="1800">30m</button>
-          <button class="interval-pill" data-sec="3600">1h</button>
+          <button class="interval-pill oneoff-pill" id="oneoffPill" data-tip="Sync once, no auto" aria-pressed="false">manual</button>
+          <button class="interval-pill" data-sec="30" aria-pressed="false">30s</button>
+          <button class="interval-pill" data-sec="60" aria-pressed="false">1m</button>
+          <button class="interval-pill" data-sec="120" aria-pressed="false">2m</button>
+          <button class="interval-pill" data-sec="300" aria-pressed="false">5m</button>
+          <button class="interval-pill" data-sec="600" aria-pressed="false">10m</button>
+          <button class="interval-pill" data-sec="1800" aria-pressed="false">30m</button>
+          <button class="interval-pill" data-sec="3600" aria-pressed="false">1h</button>
         </div>
       </div>
 
       <!-- Last sync — always last, right-aligned -->
       <div class="footer-line">
-        <button class="about-link" id="aboutBtn">v<span id="versionNum">1.0.4</span><span class="update-dot" id="updateDot"></span></button>
-        <span id="lastUpdated" class="footer-ts"></span>
+        <button class="about-link" id="aboutBtn">v<span id="versionNum">1.0.4</span><button class="update-dot" id="updateDot" aria-label="Update available" tabindex="0"></button></button>
+        <span id="lastUpdated" class="footer-ts" aria-live="polite"></span>
         <button class="footer-sync" id="manualRefreshBtn">sync</button>
       </div>
     </div>

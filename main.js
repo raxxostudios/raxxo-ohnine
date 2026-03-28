@@ -197,7 +197,7 @@ function renderTrayBar(pct, label = null) {
     try { fs.writeFileSync(tmpHtml, html); } catch(e) { console.error('renderTrayBar write failed:', e.message); resolve(null); return; }
 
     const win = new BrowserWindow({ width: cssW, height: cssH, show: false,
-      transparent: true, webPreferences: { offscreen: true } });
+      transparent: true, webPreferences: { offscreen: true, nodeIntegration: false, contextIsolation: true, sandbox: true } });
     win.loadFile(tmpHtml);
     win.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
@@ -517,7 +517,7 @@ function createPopupWindow(trayBounds) {
     width: W, height: H, x, y,
     frame: false, resizable: false, movable: true, alwaysOnTop: pinned,
     skipTaskbar: true, transparent: true, show: false, backgroundColor: themeBg,
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true },
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   popupWindow.loadFile('popup.html');
   popupWindow.on('blur', () => {
@@ -552,11 +552,14 @@ ipcMain.handle('get-interval', () => {
   return cfg.hasOwnProperty('checkInterval') ? cfg.checkInterval : 0;
 });
 ipcMain.handle('get-theme', () => loadConfig().theme || '');
-const allowedUrlPrefixes = ['https://raxxo.shop', 'https://raxxo-studio-dev.vercel.app', 'https://support.claude.com', 'https://claude.ai'];
 ipcMain.handle('open-url', (_, url) => {
-  if (typeof url === 'string' && allowedUrlPrefixes.some(p => url.startsWith(p))) {
-    shell.openExternal(url);
-  }
+  try {
+    const u = new URL(url);
+    const allowed = ['raxxo.shop', 'raxxo-studio-dev.vercel.app', 'support.claude.com', 'claude.ai'];
+    if (u.protocol === 'https:' && allowed.some(d => u.hostname === d || u.hostname.endsWith('.' + d))) {
+      shell.openExternal(url);
+    }
+  } catch {}
 });
 ipcMain.handle('get-pin', () => loadConfig().pinned || false);
 ipcMain.handle('toggle-pin', () => {
