@@ -156,7 +156,7 @@ app.whenReady().then(async () => {
         var isLight = '${state.theme}' === 'light';
         document.getElementById('iconSun').style.display = isLight ? 'block' : 'none';
         document.getElementById('iconMoon').style.display = isLight ? 'none' : 'block';
-      } catch(e) {}
+      } catch(e) { console.error('Theme toggle failed:', e.message); }
       void 0;
     `);
 
@@ -189,7 +189,7 @@ app.whenReady().then(async () => {
         var isLight = '${vs.theme}' === 'light';
         document.getElementById('iconSun').style.display = isLight ? 'block' : 'none';
         document.getElementById('iconMoon').style.display = isLight ? 'none' : 'block';
-      } catch(e) {}
+      } catch(e) { console.error('Theme toggle failed:', e.message); }
       void 0;
     `);
 

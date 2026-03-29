@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('api', {
+const isDev = process.argv.includes('--dev');
+
+const api = {
   getUsage:       () => ipcRenderer.invoke('get-usage'),
   refreshNow:     () => ipcRenderer.invoke('refresh-now'),
   isLoggedIn:     () => ipcRenderer.invoke('is-logged-in'),
@@ -19,6 +21,12 @@ contextBridge.exposeInMainWorld('api', {
   togglePin:      () => ipcRenderer.invoke('toggle-pin'),
   getPin:         () => ipcRenderer.invoke('get-pin'),
   getVersion:     () => ipcRenderer.invoke('get-version'),
-  fakeState:      (n) => ipcRenderer.invoke('fake-state', n),
   checkUpdate:    () => ipcRenderer.invoke('check-update'),
-});
+};
+
+// Only expose fakeState in dev mode (launched with --dev flag)
+if (isDev) {
+  api.fakeState = (n) => ipcRenderer.invoke('fake-state', n);
+}
+
+contextBridge.exposeInMainWorld('api', api);

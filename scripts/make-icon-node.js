@@ -99,7 +99,7 @@ function drawIcon(size) {
     }
   }
 
-  // Draw mascot centered — SVG viewBox is 40x26, scale to ~72% of icon
+  // Draw mascot centered, SVG viewBox is 40x26, scale to ~72% of icon
   const mascotW = size * 0.72;
   const sc = mascotW / 40;
   const ox = (size - mascotW) / 2;

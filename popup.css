@@ -1,6 +1,6 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 button, input { outline: none; }
-button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 
 :root {
   --bg:     #1f1f21;
@@ -248,3 +248,12 @@ html, body { width: 360px; height: 390px; background: transparent; overflow: hid
 .pct-mid  { color: var(--yellow); }
 .pct-warn { color: var(--orange); }
 .pct-red  { color: var(--red); }
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

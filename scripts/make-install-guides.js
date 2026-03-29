@@ -262,7 +262,7 @@ app.whenReady().then(async () => {
     fs.writeFileSync(outPath, png);
     console.log(`Saved: ${name}.png (${png.length} bytes)`);
 
-    try { fs.unlinkSync(tmpPath); } catch(e) {}
+    try { fs.unlinkSync(tmpPath); } catch(e) { console.error('Failed to clean up temp file:', e.message); }
   }
 
   console.log('Done!');

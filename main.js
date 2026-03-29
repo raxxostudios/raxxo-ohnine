@@ -66,7 +66,7 @@ async function checkForUpdate() {
         updateInfo = { available: true, url };
       }
     }
-  } catch(e) { /* silent */ }
+  } catch(e) { console.error('Version check failed:', e.message); }
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -84,14 +84,14 @@ function saveConfig(cfg) {
 }
 
 // ─── Pure-JS PNG encoder (for tray icons) ─────────────────────────────────────
+const CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n=0;n<256;n++){let v=n;for(let k=0;k<8;k++)v=(v&1)?0xedb88320^(v>>>1):v>>>1;t[n]=v;}
+  return t;
+})();
 function crc32(buf) {
   let c = 0xffffffff;
-  const table = (() => {
-    const t = new Uint32Array(256);
-    for (let n=0;n<256;n++){let v=n;for(let k=0;k<8;k++)v=(v&1)?0xedb88320^(v>>>1):v>>>1;t[n]=v;}
-    return t;
-  })();
-  for (let i=0;i<buf.length;i++) c=table[(c^buf[i])&0xff]^(c>>>8);
+  for (let i=0;i<buf.length;i++) c=CRC32_TABLE[(c^buf[i])&0xff]^(c>>>8);
   return (c^0xffffffff)>>>0;
 }
 function makeChunk(type, data) {
@@ -156,11 +156,23 @@ function drawMascot(px, W, H, ox, oy, sc) {
   fillRect2(px, W, H, 26.5, 8.1,  3.6, 4.9, ox, oy, sc, 0x2a, 0x00, 0x00); // right eye
 }
 
-// ─── Tray bar renderer — clean SVG via offscreen BrowserWindow ────────────────
-// CSS size = display pt size. capturePage returns CSS × devicePixelRatio pixels.
-// scaleFactor = devicePixelRatio → displayed at exactly CSS pt size.
+// ─── Tray bar renderer, reuses a persistent offscreen BrowserWindow ───────────
+// CSS size = display pt size. capturePage returns CSS x devicePixelRatio pixels.
+// scaleFactor = devicePixelRatio, displayed at exactly CSS pt size.
 // % text is baked into the image so it aligns perfectly with the mascot.
 let renderCounter = 0;
+let persistentTrayWin = null;
+
+function ensureTrayWindow(cssW, cssH) {
+  if (persistentTrayWin && !persistentTrayWin.isDestroyed()) {
+    persistentTrayWin.setSize(cssW, cssH);
+    return persistentTrayWin;
+  }
+  persistentTrayWin = new BrowserWindow({ width: cssW, height: cssH, show: false,
+    transparent: true, webPreferences: { offscreen: true, nodeIntegration: false, contextIsolation: true, sandbox: true } });
+  return persistentTrayWin;
+}
+
 function renderTrayBar(pct, label = null) {
   return new Promise(resolve => {
     const renderSeq = ++renderCounter;
@@ -193,25 +205,24 @@ function renderTrayBar(pct, label = null) {
     </div>
     </body></html>`;
 
-    const tmpHtml = path.join(app.getPath('temp'), `clawd-tray-${renderSeq}.html`);
-    try { fs.writeFileSync(tmpHtml, html); } catch(e) { console.error('renderTrayBar write failed:', e.message); resolve(null); return; }
+    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+    const win = ensureTrayWindow(cssW, cssH);
 
-    const win = new BrowserWindow({ width: cssW, height: cssH, show: false,
-      transparent: true, webPreferences: { offscreen: true, nodeIntegration: false, contextIsolation: true, sandbox: true } });
-    win.loadFile(tmpHtml);
+    win.loadURL(dataUrl);
     win.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
         try {
           const raw = await win.webContents.capturePage();
-          win.destroy();
-          try { fs.unlinkSync(tmpHtml); } catch(e) {}
           if (!raw || raw.isEmpty()) { resolve(null); return; }
-          // captured pixels = cssH × dpr; scaleFactor = dpr → displays at cssH pt
+          // captured pixels = cssH x dpr; scaleFactor = dpr, displays at cssH pt
           resolve(nativeImage.createFromBuffer(raw.toPNG(), { scaleFactor: dpr }));
-        } catch(e) { win.destroy(); resolve(null); }
+        } catch(e) {
+          console.error('renderTrayBar capture failed:', e.message);
+          resolve(null);
+        }
       }, 300);
     });
-    setTimeout(() => { if (!win.isDestroyed()) { win.destroy(); resolve(null); } }, 4000);
+    setTimeout(() => { resolve(null); }, 4000);
   });
 }
 
@@ -220,7 +231,7 @@ function updateTray(pct, label = null) {
   if (label === null) { lastTrayPct = pct; tray.setToolTip(`OhNine: ${pct}% used`); }
   const seq = ++trayRenderSeq;
   renderTrayBar(pct, label).then(img => {
-    if (seq !== trayRenderSeq) return; // stale render — a newer one is coming
+    if (seq !== trayRenderSeq) return; // stale render, a newer one is coming
     if (!tray || tray.isDestroyed()) return;
     try {
       if (img) { tray.setImage(img); tray.setTitle(''); }
@@ -253,6 +264,7 @@ async function fetchUsage() {
         session: claudeSession,
         contextIsolation: true,
         nodeIntegration: false,
+        sandbox: true,
         javascript: true,
       },
     });
@@ -411,7 +423,7 @@ function startPolling(sec=300) {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = null;
   if (sec <= 0) return;
-  const actual = Math.max(sec, 30); // minimum 30s — each fetch takes ~6s
+  const actual = Math.max(sec, 30); // minimum 30s, each fetch takes ~6s
   doUpdate();
   pollTimer = setInterval(() => doUpdate(), actual * 1000);
 }
@@ -425,7 +437,7 @@ async function openLoginWindow() {
   loginWindow = new BrowserWindow({
     width: 520, height: 680,
     title: 'Sign in to Claude',
-    webPreferences: { session: claudeSession, contextIsolation: true, nodeIntegration: false },
+    webPreferences: { session: claudeSession, contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
 
   // Make OAuth popups (e.g. Google sign-in) work, but only for known providers
@@ -559,7 +571,7 @@ ipcMain.handle('open-url', (_, url) => {
     if (u.protocol === 'https:' && allowed.some(d => u.hostname === d || u.hostname.endsWith('.' + d))) {
       shell.openExternal(url);
     }
-  } catch {}
+  } catch(e) { console.error('open-url invalid URL:', e.message); }
 });
 ipcMain.handle('get-pin', () => loadConfig().pinned || false);
 ipcMain.handle('toggle-pin', () => {
@@ -633,6 +645,15 @@ ipcMain.handle('logout', async () => {
 app.whenReady().then(async () => {
   app.dock && app.dock.hide();
 
+  // Clean up stale tray render temp files from previous sessions
+  try {
+    const tmpDir = app.getPath('temp');
+    const staleFiles = fs.readdirSync(tmpDir).filter(f => f.startsWith('clawd-tray-') && f.endsWith('.html'));
+    for (const f of staleFiles) {
+      try { fs.unlinkSync(path.join(tmpDir, f)); } catch(e) { console.error('Failed to clean stale tray file:', e.message); }
+    }
+  } catch(e) { console.error('Tray temp cleanup failed:', e.message); }
+
   // Start with blank; async SVG render replaces it within ~300ms
   tray = new Tray(nativeImage.createFromBuffer(makePNG(1, 1, new Uint8Array(4))));
   tray.setToolTip('OhNine');
@@ -655,7 +676,7 @@ app.whenReady().then(async () => {
           const wsWindow = new BrowserWindow({
             width: 520, height: 680,
             title: 'Switch to the workspace you want to track, then close this window',
-            webPreferences: { session: claudeSession, contextIsolation: true, nodeIntegration: false },
+            webPreferences: { session: claudeSession, contextIsolation: true, nodeIntegration: false, sandbox: true },
           });
           wsWindow.loadURL('https://claude.ai/settings/usage');
           wsWindow.on('closed', () => {
@@ -725,5 +746,5 @@ app.whenReady().then(async () => {
   startPolling(initCfg.hasOwnProperty('checkInterval') ? initCfg.checkInterval : 0);
 });
 
-app.on('window-all-closed', e => e.preventDefault()); // tray app — keep running on all platforms (macOS, Windows, Linux)
+app.on('window-all-closed', e => e.preventDefault()); // tray app, keep running on all platforms (macOS, Windows, Linux)
 app.on('before-quit', () => { if (pollTimer) clearInterval(pollTimer); });
