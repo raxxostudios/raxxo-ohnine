@@ -109,6 +109,7 @@ html, body { width: 360px; height: 390px; background: transparent; overflow: hid
 }
 .logout-btn:hover { color: var(--red); opacity: 1; }
 
+/* ── Account email ── */
 /* ── Body ── */
 .body { flex: 1; padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; min-height: 0; }
 

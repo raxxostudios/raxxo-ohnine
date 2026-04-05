@@ -27,6 +27,9 @@ let usageData = {
   weekly:  { pct: 0, label: 'All models',      resetAt: '' },
   sonnet:  { pct: 0, label: 'Sonnet only',      resetAt: '' },
   lastUpdated: null,
+  email: '',
+  plan: '',
+  org: '',
 };
 
 let updateInfo = { available: false, url: '' };
@@ -174,36 +177,61 @@ function ensureTrayWindow(cssW, cssH) {
 }
 
 function renderTrayBar(pct, label = null) {
+  // Windows/Linux: square icon with percentage. macOS: wide mascot + bar + text.
+  const isWide = process.platform === 'darwin';
   return new Promise(resolve => {
     const renderSeq = ++renderCounter;
     const p       = Math.min(Math.max(pct, 0), 100);
-    const svgPath = path.join(__dirname, 'assets', 'clawd.svg');
-    const dpr     = screen.getPrimaryDisplay().scaleFactor; // 2 on Retina
+    const svgB64 = fs.readFileSync(path.join(__dirname, 'assets', 'clawd.svg')).toString('base64');
+    const svgDataUri = `data:image/svg+xml;base64,${svgB64}`;
+    const dpr     = screen.getPrimaryDisplay().scaleFactor;
 
-    const cssH = 16;
     const fillColor = p >= 100 ? '#FF0079' : p >= 75 ? '#ff6b00' : p >= 50 ? '#ffcc00' : '#e3fc02';
-    const cssW = label ? 100 : 88;
     const displayText = label || `${p}%`;
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-      *{margin:0;padding:0;box-sizing:border-box}
-      html,body{width:${cssW}px;height:${cssH}px;background:transparent;overflow:hidden;
-        -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-      #wrap{display:flex;align-items:center;height:${cssH}px;padding:0 1px}
-      img{height:${cssH}px;width:auto;flex-shrink:0;margin-right:4px}
-      .track{width:20px;height:9px;background:rgba(245,245,247,0.18);border-radius:2px;
-        overflow:hidden;flex-shrink:0;margin-right:3px;display:${label ? 'none' : 'block'}}
-      .fill{height:100%;width:${p}%;background:${fillColor};border-radius:2px}
-      .pct{color:rgba(245,245,247,${label ? '0.5' : '0.88'});
-        font:${label ? '400' : '600'} 11px 'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI','Ubuntu','Noto Sans',sans-serif;
-        letter-spacing:-0.2px;flex-shrink:0;min-width:24px;text-align:right}
-    </style></head><body>
-    <div id="wrap">
-      <img src="file://${svgPath.replace(/\\/g, '/')}">
-      <div class="track"><div class="fill"></div></div>
-      <span class="pct">${displayText}</span>
-    </div>
-    </body></html>`;
+    let cssW, cssH, html;
+
+    if (isWide) {
+      // macOS: wide format with mascot + bar + percentage
+      cssH = 16;
+      cssW = label ? 100 : 88;
+      html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        html,body{width:${cssW}px;height:${cssH}px;background:transparent;overflow:hidden;
+          -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+        #wrap{display:flex;align-items:center;height:${cssH}px;padding:0 1px}
+        img{height:${cssH}px;width:auto;flex-shrink:0;margin-right:4px}
+        .track{width:20px;height:9px;background:rgba(245,245,247,0.18);border-radius:2px;
+          overflow:hidden;flex-shrink:0;margin-right:3px;display:${label ? 'none' : 'block'}}
+        .fill{height:100%;width:${p}%;background:${fillColor};border-radius:2px}
+        .pct{color:rgba(245,245,247,${label ? '0.5' : '0.88'});
+          font:${label ? '400' : '600'} 11px 'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI','Ubuntu','Noto Sans',sans-serif;
+          letter-spacing:-0.2px;flex-shrink:0;min-width:24px;text-align:right}
+      </style></head><body>
+      <div id="wrap">
+        <img src="${svgDataUri}">
+        <div class="track"><div class="fill"></div></div>
+        <span class="pct">${displayText}</span>
+      </div>
+      </body></html>`;
+    } else {
+      // Windows/Linux: square icon with color-coded percentage number
+      cssW = 16;
+      cssH = 16;
+      const textColor = label ? 'rgba(245,245,247,0.6)' : fillColor;
+      const fontSize = label ? '7' : (p === 100 ? '8' : '10');
+      const shortLabel = label ? label.replace('syncing\u2026', 'sync').replace('sign in', 'key').substring(0, 4) : `${p}`;
+      html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        html,body{width:${cssW}px;height:${cssH}px;background:transparent;overflow:hidden;
+          -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+        #wrap{display:flex;align-items:center;justify-content:center;width:${cssW}px;height:${cssH}px}
+        .num{color:${textColor};font:700 ${fontSize}px 'Segoe UI','Ubuntu','Noto Sans',sans-serif;
+          text-align:center;line-height:1}
+      </style></head><body>
+      <div id="wrap"><span class="num">${shortLabel}</span></div>
+      </body></html>`;
+    }
 
     const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
     const win = ensureTrayWindow(cssW, cssH);
@@ -214,7 +242,6 @@ function renderTrayBar(pct, label = null) {
         try {
           const raw = await win.webContents.capturePage();
           if (!raw || raw.isEmpty()) { resolve(null); return; }
-          // captured pixels = cssH x dpr; scaleFactor = dpr, displays at cssH pt
           resolve(nativeImage.createFromBuffer(raw.toPNG(), { scaleFactor: dpr }));
         } catch(e) {
           console.error('renderTrayBar capture failed:', e.message);
@@ -260,6 +287,8 @@ async function fetchUsage() {
   return new Promise((resolve) => {
     const win = new BrowserWindow({
       show: false,
+      width: 1280,
+      height: 800,
       webPreferences: {
         session: claudeSession,
         contextIsolation: true,
@@ -275,7 +304,7 @@ async function fetchUsage() {
       resolve(result);
     };
 
-    const timeoutId = setTimeout(() => done({ error: 'timeout', message: 'Page took too long to load' }), 25000);
+    const timeoutId = setTimeout(() => done({ error: 'timeout', message: 'Page took too long to load' }), 35000);
 
     win.webContents.once('did-finish-load', async () => {
       const currentUrl = win.webContents.getURL();
@@ -286,20 +315,116 @@ async function fetchUsage() {
       }
 
       try {
-        await new Promise(r => setTimeout(r, 6000)); // let React render usage data
-        const result = await win.webContents.executeJavaScript(`
-          (() => {
-            const text = document.body ? document.body.innerText : '';
-            const pcts = [...text.matchAll(/(\\d+)%\\s+used/gi)].map(m => parseInt(m[1]));
-            const resets = [...text.matchAll(/Resets\\s+([^\\n]+)/gi)].map(m => m[1].trim());
-            const mode = document.documentElement.getAttribute('data-mode') || '';
-            const bodyClass = document.body.className || '';
-            const fontMatch = bodyClass.match(/\\bfont-(\\w+)\\b/);
-            const font = fontMatch ? fontMatch[1] : 'ui';
-            return { pcts, resets, url: location.href, ok: pcts.length > 0,
-              appearance: { mode, font } };
-          })()
-        `);
+        // Wait for React to render usage data, retry up to 3 times with increasing delay
+        let result = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          await new Promise(r => setTimeout(r, attempt === 0 ? 6000 : 4000));
+          result = await win.webContents.executeJavaScript(`
+            (async () => {
+              const text = document.body ? document.body.innerText : '';
+              const pcts = [...text.matchAll(/(\\d+)%\\s+used/gi)].map(m => parseInt(m[1]));
+              // Fallback: try progress bar aria values
+              if (pcts.length === 0) {
+                document.querySelectorAll('[role="progressbar"], [aria-valuenow]').forEach(el => {
+                  const v = parseInt(el.getAttribute('aria-valuenow'));
+                  if (!isNaN(v) && v >= 0 && v <= 100) pcts.push(v);
+                });
+              }
+              const resets = [...text.matchAll(/Resets?\\s+([^\\n]+)/gi)].map(m => m[1].trim());
+              const mode = document.documentElement.getAttribute('data-mode') || '';
+              const bodyClass = document.body.className || '';
+              const fontMatch = bodyClass.match(/\\bfont-(\\w+)\\b/);
+              const font = fontMatch ? fontMatch[1] : 'ui';
+              // Find account email from page text or DOM
+              let email = '';
+              const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/);
+              if (emailMatch) email = emailMatch[0];
+              // Search ALL DOM elements for email (might be in hidden dropdown or data attrs)
+              if (!email) {
+                const allEls = document.querySelectorAll('*');
+                for (const el of allEls) {
+                  // Check text content of leaf nodes
+                  if (el.children.length === 0) {
+                    const t = (el.textContent || '').trim();
+                    const m = t.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/);
+                    if (m) { email = m[0]; break; }
+                  }
+                  // Check data attributes and aria labels
+                  for (const attr of el.attributes || []) {
+                    const m = attr.value.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/);
+                    if (m) { email = m[0]; break; }
+                  }
+                  if (email) break;
+                }
+              }
+              // Check inline scripts / __NEXT_DATA__ / window state
+              if (!email) {
+                const html = document.documentElement.innerHTML;
+                const m = html.match(/"email(?:_address)?"\\s*:\\s*"([^"@]+@[^"]+)"/);
+                if (m) email = m[1];
+              }
+              // Try API for email + plan + log response for debugging
+              let plan = '';
+              try {
+                const r = await fetch('/api/auth/current_account', { credentials: 'include' });
+                if (r.ok) {
+                  const d = await r.json();
+                  console.log('API_DUMP:', JSON.stringify(d).substring(0, 2000));
+                  if (!email) email = d?.account?.email_address || d?.account?.email || d?.email || '';
+                  // Try multiple paths for plan
+                  plan = d?.account?.memberships?.[0]?.organization?.subscription?.plan?.key
+                    || d?.account?.memberships?.[0]?.organization?.subscription?.type
+                    || d?.account?.plan || d?.plan || '';
+                }
+              } catch(e) { console.log('API error:', e.message); }
+              // Scrape plan from page text (English "Max plan" or German "Max-Plan")
+              if (!plan) {
+                const planMatch = text.match(/(Free|Pro|Max|Team|Enterprise)[\\s-]+[Pp]lan/i);
+                if (planMatch) plan = planMatch[1];
+              }
+              // Account name: find DOM element containing "X plan" and grab sibling text
+              let org = '';
+              const allEls = document.querySelectorAll('*');
+              for (const el of allEls) {
+                const t = (el.textContent || '').trim();
+                if (/(Free|Pro|Max|Team|Enterprise)[\s-]+[Pp]lan/i.test(t) && t.length < 20) {
+                  // Found the plan label element - check parent/siblings for account name
+                  const parent = el.parentElement;
+                  if (parent) {
+                    for (const child of parent.children) {
+                      const ct = (child.textContent || '').trim();
+                      if (ct && ct !== t && ct.length > 1 && ct.length < 50 && !/(plan|free|pro|max|team)/i.test(ct)) {
+                        org = ct;
+                        break;
+                      }
+                    }
+                    // Try grandparent if parent didn't have it
+                    if (!org && parent.parentElement) {
+                      for (const child of parent.parentElement.children) {
+                        const ct = (child.textContent || '').trim();
+                        if (ct && !/(plan|free|pro|max|team)/i.test(ct) && ct.length > 1 && ct.length < 50 && ct !== t) {
+                          // Strip the plan text from the candidate
+                          const clean = ct.replace(/(Free|Pro|Max|Team|Enterprise)[\s-]+[Pp]lan/gi, '').trim();
+                          if (clean && clean.length > 1) { org = clean; break; }
+                        }
+                      }
+                    }
+                  }
+                  if (org) break;
+                }
+              }
+              // Dump API response for debugging
+              let apiDump = '';
+              try {
+                const r2 = await fetch('/api/auth/current_account', { credentials: 'include' });
+                if (r2.ok) apiDump = (await r2.text()).substring(0, 1500);
+              } catch(e) { /* best-effort API call, skip silently if unavailable */ }
+              return { pcts, resets, url: location.href, ok: pcts.length > 0,
+                email, plan, org, appearance: { mode, font } };
+            })()
+          `);
+          if (result && result.ok) break;
+        }
         if (!result || !result.ok) {
           done({ error: 'page_changed', message: 'Could not read usage data. Page layout may have changed.' });
           return;
@@ -317,7 +442,9 @@ async function fetchUsage() {
       done({ error: isNetwork ? 'network' : 'load_failed', message: isNetwork ? 'No internet connection' : `Page load failed (${desc})` });
     });
 
-    win.loadURL('https://claude.ai/settings/usage', {
+    // Force English rendering for consistent scraping
+    claudeSession.cookies.set({ url: 'https://claude.ai', name: 'CH-prefers-language', value: 'en' }).catch(() => {});
+    win.loadURL('https://claude.ai/settings/usage?lang=en', {
       extraHeaders: 'Accept-Language: en-US,en;q=0.9\n',
     });
   });
@@ -391,10 +518,13 @@ async function doUpdate(showSyncing = false) {
       return;
     }
     if (tray) { updateTray(lastTrayPct, 'retry…'); }
-    isUpdating = false; setTimeout(doUpdate, 60000);
+    // Exponential backoff: 30s, 60s, 120s, 240s, 480s
+    const backoff = Math.min(30000 * Math.pow(2, retryCount - 1), 480000);
+    isUpdating = false; setTimeout(doUpdate, backoff);
     return;
   }
   retryCount = 0;
+  console.log('[OhNine] Sync:', JSON.stringify({ org: raw.org, plan: raw.plan, pcts: raw.pcts }));
 
   const [sPct=0, wPct=0, nPct=0] = raw.pcts;
   const [sReset='', wReset='', nReset=''] = raw.resets;
@@ -405,8 +535,12 @@ async function doUpdate(showSyncing = false) {
     weekly:  { pct: wPct, resetAt: wReset },
     sonnet:  { pct: nPct, resetAt: nReset },
     lastUpdated: new Date().toISOString(),
+    email: raw.email || usageData.email || '',
+    plan: raw.plan || usageData.plan || '',
+    org: raw.org || usageData.org || '',
     appearance: { theme: ap.mode || '', font: ap.font || 'ui' },
   };
+
 
   updateTray(sPct);
   maybeNotify(sPct);
@@ -469,11 +603,33 @@ async function openLoginWindow() {
     const loggedIn = await isLoggedIn();
     if (loggedIn) {
       clearInterval(checkLogin);
-      // Navigate to usage page so user can verify/switch workspace before closing
-      loginWindow.setTitle('Switch to your paid workspace if needed, then close this window');
-      loginWindow.loadURL('https://claude.ai/settings/usage');
-      // Don't auto-close - let user close manually after picking workspace
-      // Polling starts when user closes the login window (see 'closed' handler below)
+      // Navigate to settings to grab email, then to usage for workspace switching
+      loginWindow.setTitle('Loading account info...');
+      loginWindow.loadURL('https://claude.ai/settings');
+      // Wait for settings page to load, grab email
+      loginWindow.webContents.once('did-finish-load', async () => {
+        try {
+          await new Promise(r => setTimeout(r, 3000));
+          const email = await loginWindow.webContents.executeJavaScript(`
+            (() => {
+              const text = document.body ? document.body.innerText : '';
+              const m = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/);
+              return m ? m[0] : '';
+            })()
+          `);
+          if (email) {
+            usageData.email = email;
+            console.log('[OhNine] Email from login:', email);
+            // Save email to config so it persists across restarts
+            const cfg = loadConfig();
+            cfg.email = email;
+            saveConfig(cfg);
+          }
+        } catch(e) { console.error('Email fetch failed:', e.message); }
+        // Now go to usage page for workspace switching
+        loginWindow.setTitle('Switch to your paid workspace if needed, then close this window');
+        loginWindow.loadURL('https://claude.ai/settings/usage');
+      });
       if (popupWindow && !popupWindow.isDestroyed()) {
         popupWindow.webContents.send('logged-in');
       }
@@ -636,7 +792,7 @@ ipcMain.handle('logout', async () => {
   await s.clearStorageData({ storages: ['cookies'] });
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = null;
-  usageData = { session: { pct:0, resetIn:'' }, weekly: { pct:0, resetAt:'' }, sonnet: { pct:0, resetAt:'' }, lastUpdated: null };
+  usageData = { session: { pct:0, resetIn:'' }, weekly: { pct:0, resetAt:'' }, sonnet: { pct:0, resetAt:'' }, lastUpdated: null, email: '', plan: '', org: '' };
   lastTrayPct = 0;
   if (tray) { updateTray(0, 'sign in'); }
 });
@@ -663,6 +819,10 @@ app.whenReady().then(async () => {
     const cfg = loadConfig();
     return require('electron').Menu.buildFromTemplate([
       { label: `OhNine v${app.getVersion()}`, enabled: false },
+      ...(usageData.org || usageData.plan ? [{
+        label: [usageData.org, usageData.plan ? usageData.plan + ' plan' : ''].filter(Boolean).join(' \u00b7 '),
+        enabled: false
+      }] : []),
       { type: 'separator' },
       ...(process.platform === 'linux' ? [{
         label: 'Show OhNine', click: () => {
@@ -743,7 +903,9 @@ app.whenReady().then(async () => {
   });
 
   const initCfg = loadConfig();
+  if (initCfg.email) usageData.email = initCfg.email;
   startPolling(initCfg.hasOwnProperty('checkInterval') ? initCfg.checkInterval : 0);
+
 });
 
 app.on('window-all-closed', e => e.preventDefault()); // tray app, keep running on all platforms (macOS, Windows, Linux)
