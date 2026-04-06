@@ -24,15 +24,20 @@ $('aboutBackBtn').addEventListener('click', showMain);
 $('aboutBackBtn2').addEventListener('click', showMain);
 $('legalPrivacyBtn').addEventListener('click', () => window.api.openUrl('https://raxxo.shop/pages/datenschutz'));
 $('legalTosBtn').addEventListener('click', () => window.api.openUrl('https://raxxo.shop/pages/terms'));
+let pendingUpdateUrl = null;
 $('checkUpdateBtn').addEventListener('click', async () => {
   const btn = $('checkUpdateBtn');
+  if (pendingUpdateUrl) {
+    window.api.openUrl(pendingUpdateUrl);
+    return;
+  }
   btn.textContent = 'Checking...';
   const result = await window.api.checkUpdate();
   if (result && result.available) {
+    pendingUpdateUrl = result.url;
     btn.textContent = 'Update available';
     btn.style.borderColor = 'var(--green)';
     btn.style.color = 'var(--green)';
-    btn.onclick = () => window.api.openUrl(result.url);
   } else {
     btn.textContent = 'Up to date';
     setTimeout(() => { btn.textContent = 'Check for updates'; }, 2000);
@@ -304,9 +309,14 @@ async function init() {
   // One-time version check (non-blocking)
   window.api.checkUpdate().then(result => {
     if (result && result.available) {
+      pendingUpdateUrl = result.url;
       const aboutBtn = $('aboutBtn');
       aboutBtn.classList.add('has-update');
       aboutBtn.dataset.tip = 'Update available';
+      const updateBtn = $('checkUpdateBtn');
+      updateBtn.textContent = 'Update available';
+      updateBtn.style.borderColor = 'var(--green)';
+      updateBtn.style.color = 'var(--green)';
       const dot = $('updateDot');
       dot.addEventListener('click', (e) => {
         e.stopPropagation();
