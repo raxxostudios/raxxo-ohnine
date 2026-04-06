@@ -40,9 +40,10 @@ npm run build      # Build installers (.dmg, .exe, .AppImage, .deb)
 
 ## Version
 
-Current: 1.0.7
+Current: 1.0.7 (FINAL - no more updates planned)
 
 Version check: app queries `studio.raxxo.shop/ohnine-version.json` on startup.
+Version is displayed dynamically from app.getVersion() - no hardcoded values in HTML.
 
 ## Dev Shortcuts
 
