@@ -1,7 +1,7 @@
 {
   "name": "ohnine",
   "productName": "OhNine",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "Oh Nine. Oh Nein. The menu bar app that tells you how much Claude you have left before it tells you no.",
   "main": "main.js",
   "scripts": {
@@ -77,15 +77,18 @@
       "icon": "assets/icon.iconset",
       "category": "Utility",
       "desktop": {
-        "StartupWMClass": "OhNine",
-        "Comment": "Claude usage monitor for your menu bar"
+        "entry": {
+          "StartupWMClass": "OhNine",
+          "Comment": "Claude usage monitor for your menu bar"
+        }
       }
     },
     "deb": {
       "depends": [
         "libappindicator3-1",
         "libnotify4"
-      ]
+      ],
+      "compression": "gz"
     },
     "files": [
       "main.js",

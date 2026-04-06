@@ -158,7 +158,7 @@ dist/                     Built installers
 
 ## Version
 
-Current: **1.0.4**
+Current: **1.0.7**
 
 ## License
 
