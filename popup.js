@@ -171,11 +171,7 @@ function renderUsage(data) {
     lastUpdated.textContent = `last sync ${fmtTime(data.lastUpdated)}`;
   }
 
-  // Show plan in header badge (replaces "beta")
-  if (data.plan) {
-    const badge = document.querySelector('.beta-badge');
-    if (badge) { badge.textContent = data.plan; badge.title = data.plan + ' plan'; }
-  }
+  // Badge stays as "beta" - plan detection unreliable across account types
 }
 
 // ── View switching ────────────────────────────────────────────────────────────

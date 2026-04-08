@@ -363,18 +363,13 @@ async function fetchUsage() {
                 const m = html.match(/"email(?:_address)?"\\s*:\\s*"([^"@]+@[^"]+)"/);
                 if (m) email = m[1];
               }
-              // Try API for email + plan + log response for debugging
+              // Try API for email + plan
               let plan = '';
               try {
                 const r = await fetch('/api/auth/current_account', { credentials: 'include' });
                 if (r.ok) {
                   const d = await r.json();
-                  console.log('API_DUMP:', JSON.stringify(d).substring(0, 2000));
                   if (!email) email = d?.account?.email_address || d?.account?.email || d?.email || '';
-                  // Try multiple paths for plan
-                  plan = d?.account?.memberships?.[0]?.organization?.subscription?.plan?.key
-                    || d?.account?.memberships?.[0]?.organization?.subscription?.type
-                    || d?.account?.plan || d?.plan || '';
                 }
               } catch(e) { console.log('API error:', e.message); }
               // Scrape plan from page text (English "Max plan" or German "Max-Plan")
