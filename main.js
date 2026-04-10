@@ -218,8 +218,8 @@ function renderTrayBar(pct, label = null) {
       // Windows/Linux: square icon with color-coded percentage number
       cssW = 16;
       cssH = 16;
-      const textColor = label ? 'rgba(245,245,247,0.6)' : fillColor;
-      const fontSize = label ? '7' : (p === 100 ? '8' : '10');
+      const textColor = label ? '#F5F5F7' : fillColor;
+      const fontSize = label ? '7' : (p === 100 ? '9' : '11');
       const shortLabel = label ? label.replace('syncing\u2026', 'sync').replace('sign in', 'key').substring(0, 4) : `${p}`;
       html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
         *{margin:0;padding:0;box-sizing:border-box}
@@ -227,7 +227,7 @@ function renderTrayBar(pct, label = null) {
           -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
         #wrap{display:flex;align-items:center;justify-content:center;width:${cssW}px;height:${cssH}px}
         .num{color:${textColor};font:700 ${fontSize}px 'Segoe UI','Ubuntu','Noto Sans',sans-serif;
-          text-align:center;line-height:1}
+          text-align:center;line-height:1;-webkit-text-stroke:0.5px ${textColor}}
       </style></head><body>
       <div id="wrap"><span class="num">${shortLabel}</span></div>
       </body></html>`;

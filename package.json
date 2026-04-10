@@ -1,7 +1,7 @@
 {
   "name": "ohnine",
   "productName": "OhNine",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Oh Nine. Oh Nein. The menu bar app that tells you how much Claude you have left before it tells you no.",
   "main": "main.js",
   "scripts": {
@@ -41,7 +41,8 @@
           ]
         }
       ],
-      "icon": "assets/icon.icns"
+      "icon": "assets/icon.icns",
+      "artifactName": "OhNine-${version}-${arch}.${ext}"
     },
     "dmg": {
       "title": "OhNine",
@@ -65,9 +66,13 @@
         "height": 380
       }
     },
+    "nsis": {
+      "artifactName": "OhNine-Setup-${version}.${ext}"
+    },
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon.ico",
+      "artifactName": "OhNine-Setup-${version}.${ext}"
     },
     "linux": {
       "target": [
@@ -76,6 +81,7 @@
       ],
       "icon": "assets/icon.iconset",
       "category": "Utility",
+      "artifactName": "OhNine-${version}.${ext}",
       "desktop": {
         "entry": {
           "StartupWMClass": "OhNine",

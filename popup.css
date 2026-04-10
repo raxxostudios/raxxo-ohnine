@@ -65,17 +65,18 @@ html, body { width: 360px; height: 390px; background: transparent; overflow: hid
 /* ── Header ── */
 .header {
   display: flex; align-items: center; gap: 8px;
-  padding: 12px 16px 12px;
+  padding: 16px 16px 16px;
   border-bottom: 1px solid var(--border);
   background: var(--glass-bg);
   -webkit-backdrop-filter: blur(var(--glass-blur));
   backdrop-filter: blur(var(--glass-blur));
+  -webkit-app-region: drag; cursor: grab;
+  -webkit-user-select: none; user-select: none;
 }
-.header { -webkit-app-region: drag; cursor: grab; }
 .header:active { cursor: grabbing; }
-.header * { -webkit-app-region: no-drag; cursor: default; }
-.header-logo { width: 22px; height: auto; flex-shrink: 0; }
-.header-title { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; }
+.header .icon-btn, .header .logout-btn { -webkit-app-region: no-drag; cursor: default; }
+.header-logo { width: 22px; height: auto; flex-shrink: 0; -webkit-app-region: drag; pointer-events: none; }
+.header-title { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; -webkit-app-region: drag; cursor: grab; -webkit-user-select: none; user-select: none; }
 .beta-badge { font-size: 9px; font-weight: 600; color: var(--green); border: 1px solid var(--green); padding: 2px 4px; border-radius: 4px; vertical-align: middle; opacity: 0.6; letter-spacing: 0.5px; }
 .icon-btn {
   background: transparent; border: none; color: var(--muted);
