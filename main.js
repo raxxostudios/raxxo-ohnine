@@ -860,7 +860,7 @@ app.whenReady().then(async () => {
           const v = app.getVersion();
           const os = `${process.platform} ${process.arch}`;
           const subject = encodeURIComponent(`OhNine Bug Report v${v}`);
-          const body = encodeURIComponent(`Hi Norman,\n\nI found a bug in OhNine v${v} (${os}).\n\nWhat happened:\n\n\nWhat I expected:\n\n\nScreenshot (if possible):\n\n`);
+          const body = encodeURIComponent(`Hi,\n\nI found a bug in OhNine v${v} (${os}).\n\nWhat happened:\n\n\nWhat I expected:\n\n\nScreenshot (if possible):\n\n`);
           shell.openExternal(`mailto:help@raxxo.shop?subject=${subject}&body=${body}`);
         }
       },

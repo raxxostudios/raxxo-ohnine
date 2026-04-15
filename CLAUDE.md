@@ -57,5 +57,5 @@ Zero data sent to RAXXO or any third party. No analytics. No telemetry. All data
 
 - No em dashes
 - Text color #F5F5F7 (never #fff)
-- Author: RAXXO Studios (never Norman)
+- Author: RAXXO Studios
 - "Claude" is a trademark of Anthropic. OhNine is not affiliated with Anthropic.
