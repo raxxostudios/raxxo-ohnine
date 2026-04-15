@@ -1,42 +1,25 @@
-OhNine - Single-User Software License
-Copyright (c) 2026 RAXXO Studios (Norman Meyer). All rights reserved.
+MIT License
 
-1. GRANT OF LICENSE
-This license grants you, the original purchaser, a non-exclusive,
-non-transferable right to install and use OhNine on your own personal
-devices for personal or professional use.
+Copyright (c) 2026 RAXXO Studios
 
-2. RESTRICTIONS
-You may NOT:
-- Redistribute, share, upload, or make OhNine available to others
-- Resell, sublicense, rent, or lease OhNine
-- Reverse engineer, decompile, or disassemble OhNine
-- Remove or alter any copyright notices or branding
-- Claim OhNine as your own work or rebrand it
-- Use OhNine to create a competing product
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-3. OWNERSHIP
-OhNine and all copies remain the property of RAXXO Studios.
-Purchasing a license does not transfer ownership of the software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-4. UPDATES
-Free updates are included for the lifetime of the product.
-RAXXO Studios is not obligated to provide updates but intends to.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
-5. NO WARRANTY
-OhNine is provided "as-is" without warranty of any kind. RAXXO Studios
-is not liable for any damages arising from the use of this software,
-including but not limited to interruptions, data loss, or changes caused
-by updates to claude.ai or Anthropic's platform.
-
-6. TERMINATION
-This license terminates automatically if you violate any of these terms.
-Upon termination, you must delete all copies of OhNine.
-
-7. INDEPENDENT PRODUCT
-OhNine is an independent product by RAXXO Studios. It is not affiliated
-with, endorsed by, or connected to Anthropic, PBC. "Claude" is a
-trademark of Anthropic. You are solely responsible for ensuring your use
-complies with Anthropic's Terms of Service.
-
-Contact: help@raxxo.shop
+OhNine is an independent product by RAXXO Studios. Not affiliated with,
+endorsed by, or connected to Anthropic, PBC. "Claude" is a trademark of
+Anthropic.

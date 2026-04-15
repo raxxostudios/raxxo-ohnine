@@ -1,8 +1,11 @@
 # OhNine
 
+[![MIT License](https://img.shields.io/badge/license-MIT-e3fc02)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/raxxostudios/raxxo-ohnine)](https://github.com/raxxostudios/raxxo-ohnine/releases/latest)
+
 **Don't get caught at zero.**
 
-OhNine is a menu bar app that tracks your Claude AI usage limits in real time. Session usage, weekly caps, model-specific limits. One glance tells you exactly where you stand before Claude says no.
+OhNine is a free, open-source menu bar app that tracks your Claude AI usage limits in real time. Session usage, weekly caps, model-specific limits. One glance tells you exactly where you stand before Claude says no.
 
 Oh nine. Oh nein.
 
@@ -40,7 +43,7 @@ Full privacy policy: https://raxxo.shop/pages/datenschutz
 
 ## Install (macOS)
 
-1. Download the `.dmg` for your Mac (Apple Silicon or Intel) from [raxxo.shop](https://raxxo.shop)
+1. Download the `.dmg` for your Mac (Apple Silicon or Intel) from [GitHub Releases](https://github.com/raxxostudios/raxxo-ohnine/releases/latest)
 2. Open the `.dmg` and drag OhNine into Applications
 3. **First launch security warning:** macOS will say the app "can't be opened because Apple cannot check it for malicious software." This is normal for indie apps without a paid Apple Developer certificate.
 
@@ -56,7 +59,7 @@ Full privacy policy: https://raxxo.shop/pages/datenschutz
 
 ## Install (Windows)
 
-1. Download the `.exe` installer from [raxxo.shop](https://raxxo.shop)
+1. Download the `.exe` installer from [GitHub Releases](https://github.com/raxxostudios/raxxo-ohnine/releases/latest)
 2. Double-click to run. Windows SmartScreen may show "Windows protected your PC."
    - Click **More info**
    - Click **Run anyway**
@@ -130,7 +133,7 @@ To release a new version:
 2. `npm run build`
 3. Update `public/ohnine-version.json` in the `raxxo-studios` repo
 4. Deploy to Vercel
-5. Upload new installers to Shopify product page
+5. Upload new installers to GitHub Releases
 
 ### Project structure
 
@@ -158,11 +161,20 @@ dist/                     Built installers
 
 ## Version
 
-Current: **1.0.7**
+Current: **1.0.8**
+
+## Contributing
+
+Found a bug? Have an idea? PRs welcome.
+
+1. Fork the repo
+2. Create your branch (`git checkout -b fix/something`)
+3. Commit your changes
+4. Push and open a PR
 
 ## License
 
-Single-user license. Do not redistribute or resell. Provided as-is with no warranty.
+MIT License. Free and open source.
 
 OhNine is an independent product by RAXXO Studios. Not affiliated with, endorsed by, or connected to Anthropic, PBC. "Claude" is a trademark of Anthropic.
 

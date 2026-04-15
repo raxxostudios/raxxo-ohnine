@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Menu bar app that tracks Claude AI usage limits in real time. Electron tray app for macOS, Windows, and Linux. Sold on raxxo.shop for 9EUR. Reads usage data directly from claude.ai using the user's browser session.
+Menu bar app that tracks Claude AI usage limits in real time. Electron tray app for macOS, Windows, and Linux. Free and open source (MIT). Reads usage data directly from claude.ai using the user's browser session.
 
 ## Commands
 
@@ -58,6 +58,4 @@ Zero data sent to RAXXO or any third party. No analytics. No telemetry. All data
 - No em dashes
 - Text color #F5F5F7 (never #fff)
 - Author: RAXXO Studios (never Norman)
-- Currency: 5EUR not EUR5
 - "Claude" is a trademark of Anthropic. OhNine is not affiliated with Anthropic.
-- Never mention refunds anywhere
