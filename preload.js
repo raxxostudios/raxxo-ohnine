@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Dev mode enables fakeState for preview screenshots
 const isDev = process.argv.includes('--dev');
 
 const api = {

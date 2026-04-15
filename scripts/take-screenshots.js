@@ -1,4 +1,4 @@
-// TEMP: Screenshot capture script for OhNine marketing materials
+// Screenshot capture script for OhNine marketing materials
 // Run with: npx electron scripts/take-screenshots.js
 
 const { app, BrowserWindow } = require('electron');
