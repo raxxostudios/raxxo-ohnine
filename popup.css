@@ -152,6 +152,8 @@ html, body { width: 360px; height: 390px; background: transparent; overflow: hid
 .lane-pct { font-size: 13px; font-weight: 700; width: 44px; text-align: right; flex-shrink: 0; }
 .lane-ticks { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); padding: 0 2px; margin-top: 1px; margin-right: 52px; /* offset for lane-pct width+gap */ }
 .reset-line { font-size: 11px; color: var(--sub); min-height: 14px; margin-top: 2px; margin-bottom: 2px; }
+.reset-line.reset-warn { color: var(--orange); font-weight: 500; }
+.reset-line.reset-red  { color: var(--red); font-weight: 600; }
 
 /* ── Compact weekly rows ── */
 .compact-header { display: flex; align-items: center; justify-content: space-between; }

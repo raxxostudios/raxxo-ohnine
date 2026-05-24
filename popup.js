@@ -64,6 +64,104 @@ function fmtTime(iso) {
   return new Date(iso).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12: true }).toLowerCase();
 }
 
+// ── Session reset countdown ─────────────────────────────────────────────────────
+// claude.ai only prints a static reset string (e.g. "in 4 hr 58 min"). We turn it
+// into an absolute target timestamp at sync time, then tick a live countdown so the
+// answer to "how long until I can continue?" is always on screen, including at 100%
+// and in the 91-99% danger zone where the reset used to be hidden.
+let sessionPctState    = 0;
+let sessionResetTarget = null;  // ms timestamp, or null when unknown/unparseable
+let sessionResetRaw    = '';    // raw claude string, used as fallback text
+let lastResetText      = null;
+let lastResetClass     = null;
+let countdownTimer     = null;
+let zeroRefreshFired   = false;
+
+function parseResetToTarget(str) {
+  if (!str) return null;
+  const s = String(str).trim().toLowerCase().replace(/^(in|at)\s+/, '');
+  // Clock time ("4:00 pm", "fri 4:00 pm", "16:00") -> next occurrence of that time
+  if (/\d{1,2}:\d{2}/.test(s)) {
+    const c = s.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/);
+    if (!c) return null;
+    let hr = parseInt(c[1]); const min = parseInt(c[2]); const ap = c[3];
+    if (ap === 'pm' && hr < 12) hr += 12;
+    if (ap === 'am' && hr === 12) hr = 0;
+    const now = new Date();
+    const target = new Date(now); target.setHours(hr, min, 0, 0);
+    const days = ['sun','mon','tue','wed','thu','fri','sat'];
+    const dm = s.match(/\b(sun|mon|tue|wed|thu|fri|sat)/);
+    if (dm) {
+      let delta = (days.indexOf(dm[1]) - now.getDay() + 7) % 7;
+      if (delta === 0 && target <= now) delta = 7;
+      target.setDate(now.getDate() + delta);
+    } else if (target <= now) {
+      target.setDate(now.getDate() + 1);
+    }
+    return target.getTime();
+  }
+  // Duration ("4 hr 58 min", "2 hours 30 minutes", "28 min", "45 sec").
+  // Units are listed longest-first so "hr" never matches as a bare "h".
+  const m = s.match(/(?:(\d+)\s*(?:hours|hour|hrs|hr|h)\b)?\s*(?:(\d+)\s*(?:minutes|minute|mins|min|m)\b)?\s*(?:(\d+)\s*(?:seconds|second|secs|sec|s)\b)?/);
+  if (m && (m[1] || m[2] || m[3])) {
+    const ms = ((parseInt(m[1] || 0) * 60 + parseInt(m[2] || 0)) * 60 + parseInt(m[3] || 0)) * 1000;
+    if (ms > 0) return Date.now() + ms;
+  }
+  return null;
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return null;
+  const t = Math.floor(ms / 1000);
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  if (h > 0) return `${h} hr ${m} min`;
+  if (m >= 5) return `${m} min`;
+  if (m >= 1) return `${m} min ${s} s`;
+  return `${s} s`;
+}
+
+function setReset(text, p) {
+  if (text !== lastResetText) { sessionReset.textContent = text; lastResetText = text; }
+  const cls = 'reset-line' + (p >= 100 ? ' reset-red' : p >= 91 ? ' reset-warn' : '');
+  if (cls !== lastResetClass) { sessionReset.className = cls; lastResetClass = cls; }
+}
+
+function renderSessionReset() {
+  const p = sessionPctState;
+  const remaining = sessionResetTarget ? sessionResetTarget - Date.now() : null;
+
+  // Countdown elapsed: pull fresh numbers once. The 5h window may have rolled
+  // forward (more usage = later reset), so re-sync instead of claiming a reset.
+  if (sessionResetTarget && remaining <= 0 && !zeroRefreshFired) {
+    zeroRefreshFired = true;
+    sessionResetTarget = null;
+    setReset(p >= 100 ? 'Oh Nein. Checking for reset…' : 'Resetting. Syncing…', p);
+    window.api.refreshNow().then(d => { if (d && d.lastUpdated) renderUsage(d); }).catch(() => {});
+    return;
+  }
+
+  const countdown = remaining != null ? formatCountdown(remaining) : null;
+  const resetPhrase = countdown ? `Resets in ${countdown}`
+    : sessionResetRaw ? `Resets ${sessionResetRaw}` : '';
+
+  let text;
+  if (p >= 100) {
+    text = countdown ? `Oh Nein. Back in ${countdown}`
+      : sessionResetRaw ? `Oh Nein. Resets ${sessionResetRaw}`
+      : 'Oh Nein. Waiting for reset.';
+  } else if (p >= 91) {
+    text = resetPhrase ? `Oh Nine. Literally. · ${resetPhrase}` : 'Oh Nine. Literally.';
+  } else {
+    text = resetPhrase;
+  }
+  setReset(text, p);
+}
+
+function startCountdownTimer() {
+  if (countdownTimer) return;
+  countdownTimer = setInterval(renderSessionReset, 1000);
+}
+
 let isWalkingBack = false;
 
 function moveCrabTo(pct, instant=false) {
@@ -139,9 +237,13 @@ function renderUsage(data) {
   sessionFill.style.background = fillColor(sPct);
   sessionPct.textContent = `${sPct}%`;
   sessionPct.className   = 'lane-pct ' + pctClass(sPct);
-  sessionReset.textContent = (sPct >= 91 && sPct < 100) ? 'Oh Nine. Literally.' :
-    sPct >= 100 ? (data.session.resetIn ? `Resets ${data.session.resetIn}` : 'Oh Nein. Waiting for reset.') :
-    data.session.resetIn ? `Resets ${data.session.resetIn}` : '';
+
+  // Re-arm the live reset countdown from this sync's fresh value
+  sessionPctState    = sPct;
+  sessionResetRaw    = data.session.resetIn || '';
+  sessionResetTarget = parseResetToTarget(sessionResetRaw);
+  zeroRefreshFired   = false;
+  renderSessionReset();
 
   if (sPct >= 100) {
     laneCrab.classList.add('tired');
@@ -286,6 +388,7 @@ async function init() {
     document.querySelectorAll('.login-version-num').forEach(el => el.textContent = version);
   }
   initPin();
+  startCountdownTimer();
 
   // Persist defaults on first run
   if (!savedTheme) window.api.setTheme('dark');

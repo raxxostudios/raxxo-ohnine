@@ -255,7 +255,11 @@ function renderTrayBar(pct, label = null) {
 
 function updateTray(pct, label = null) {
   if (!tray) return;
-  if (label === null) { lastTrayPct = pct; tray.setToolTip(`OhNine: ${pct}% used`); }
+  if (label === null) {
+    lastTrayPct = pct;
+    const reset = usageData?.session?.resetIn;
+    tray.setToolTip(reset ? `OhNine: ${pct}% used · resets ${reset}` : `OhNine: ${pct}% used`);
+  }
   const seq = ++trayRenderSeq;
   renderTrayBar(pct, label).then(img => {
     if (seq !== trayRenderSeq) return; // stale render, a newer one is coming
@@ -460,7 +464,8 @@ function maybeNotify(pct) {
     notified[100] = true;
     notified[80]  = true;
     notified[9]   = true;
-    notify('OhNine. Oh Nein.', 'Session limit reached. Time to wait for a reset.');
+    const reset = usageData?.session?.resetIn;
+    notify('OhNine. Oh Nein.', reset ? `Session limit reached. Resets ${reset}.` : 'Session limit reached. Time to wait for a reset.');
   } else if (pct >= 91 && !notified[9]) {
     notified[9] = true;
     notified[80] = true;
