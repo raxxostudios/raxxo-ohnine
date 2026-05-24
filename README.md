@@ -44,7 +44,7 @@ Full privacy policy: https://raxxo.shop/pages/datenschutz
 
 ## Install (macOS)
 
-1. Download the `.dmg` for your Mac (Apple Silicon or Intel) from [GitHub Releases](https://github.com/raxxostudios/raxxo-ohnine/releases/latest)
+1. Download the `.dmg` for your Mac (Apple Silicon or Intel) from [studio.raxxo.shop/ohnine-download](https://studio.raxxo.shop/ohnine-download)
 2. Open the `.dmg` and drag OhNine into Applications
 3. **First launch security warning:** macOS will say the app "can't be opened because Apple cannot check it for malicious software." This is normal for indie apps without a paid Apple Developer certificate.
 
@@ -60,7 +60,7 @@ Full privacy policy: https://raxxo.shop/pages/datenschutz
 
 ## Install (Windows)
 
-1. Download the `.exe` installer from [GitHub Releases](https://github.com/raxxostudios/raxxo-ohnine/releases/latest)
+1. Download the `.exe` installer from [studio.raxxo.shop/ohnine-download](https://studio.raxxo.shop/ohnine-download)
 2. Double-click to run. Windows SmartScreen may show "Windows protected your PC."
    - Click **More info**
    - Click **Run anyway**
@@ -68,9 +68,8 @@ Full privacy policy: https://raxxo.shop/pages/datenschutz
 
 ## Install (Linux)
 
-1. Download the `.AppImage` or `.deb` package
-2. For AppImage: `chmod +x OhNine*.AppImage && ./OhNine*.AppImage`
-3. For Debian/Ubuntu: `sudo dpkg -i ohnine*.deb`
+1. Download the `.AppImage` from [studio.raxxo.shop/ohnine-download](https://studio.raxxo.shop/ohnine-download)
+2. Make it executable and run: `chmod +x OhNine*.AppImage && ./OhNine*.AppImage`
 
 ---
 
@@ -132,9 +131,10 @@ The app checks `studio.raxxo.shop/ohnine-version.json` on startup.
 To release a new version:
 1. Bump version in `package.json`
 2. `npm run build`
-3. Update `public/ohnine-version.json` in the `raxxo-studios` repo
-4. Deploy to Vercel
-5. Upload new installers to GitHub Releases
+3. Copy the new installers into `public/downloads/` in the `raxxo-studios` repo. The Vercel deploy is a full snapshot, so keep the existing files for any platform you did not rebuild.
+4. Bump `public/ohnine-version.json` and the download page version in `raxxo-studios`
+5. Deploy `raxxo-studios` to Vercel (`vercel --prod`). This publishes the installers to `studio.raxxo.shop/downloads` and the update feed users check on startup.
+6. (Optional) Mirror the installers to GitHub Releases.
 
 ### Project structure
 
