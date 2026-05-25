@@ -326,6 +326,27 @@ async function fetchUsage() {
           result = await win.webContents.executeJavaScript(`
             (async () => {
               const text = document.body ? document.body.innerText : '';
+              // PRIMARY (language-independent): claude.ai's structured usage API.
+              // Returns utilization + ISO resets_at per limit, so it works in any
+              // account language and at 100%, unlike scraping localized "Resets" text.
+              let apiPcts = null, apiResets = null;
+              try {
+                const ents = performance.getEntriesByType('resource').map(e => e.name);
+                let orgId = (ents.find(u => /\\/api\\/organizations\\/[0-9a-f-]+\\/usage/.test(u)) || '').match(/organizations\\/([0-9a-f-]+)\\/usage/);
+                orgId = orgId ? orgId[1] : null;
+                if (!orgId) {
+                  const orgs = await (await fetch('/api/organizations', { credentials: 'include' })).json();
+                  if (Array.isArray(orgs)) orgId = (orgs.find(o => o && o.uuid) || orgs[0] || {}).uuid || null;
+                }
+                if (orgId) {
+                  const u = await (await fetch('/api/organizations/' + orgId + '/usage', { credentials: 'include' })).json();
+                  if (u && u.five_hour) {
+                    const s = u.five_hour || {}, w = u.seven_day || {}, n = u.seven_day_sonnet || {};
+                    apiPcts = [s.utilization || 0, w.utilization || 0, n.utilization || 0];
+                    apiResets = [s.resets_at || '', w.resets_at || '', n.resets_at || ''];
+                  }
+                }
+              } catch(e) { /* fall back to DOM scrape below */ }
               const pcts = [...text.matchAll(/(\\d+)%\\s+used/gi)].map(m => parseInt(m[1]));
               // Fallback: try progress bar aria values
               if (pcts.length === 0) {
@@ -412,13 +433,27 @@ async function fetchUsage() {
                   if (org) break;
                 }
               }
-              // Dump API response for debugging
-              let apiDump = '';
+              // Language-agnostic session reset. claude.ai renders by account
+              // language (ignores ?lang=en), so the English "Resets" regex misses
+              // German pages. The session is the first usage block (heading / reset
+              // / "N% used"); grab the reset line by its time/date token (EN + DE),
+              // independent of the surrounding word.
+              let sessionReset = '';
               try {
-                const r2 = await fetch('/api/auth/current_account', { credentials: 'include' });
-                if (r2.ok) apiDump = (await r2.text()).substring(0, 1500);
-              } catch(e) { /* best-effort API call, skip silently if unavailable */ }
-              return { pcts, resets, url: location.href, ok: pcts.length > 0,
+                const timeTok = /(\\d{1,2}:\\d{2}|\\bin\\b|\\b(hr|hrs|hour|hours|min|mins|minute|minutes|day|days|std|stunde|stunden|tag|tage)\\b|\\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|januar|februar|m\\u00e4rz|april|mai|juni|juli|august|september|oktober|november|dezember)\\b)/i;
+                for (const el of document.querySelectorAll('div,section,li')) {
+                  const lines = (el.innerText || '').split('\\n').map(s => s.trim()).filter(Boolean);
+                  if (lines.length < 2 || lines.length > 6) continue;
+                  if (lines.findIndex(l => /\\d+\\s*%/.test(l)) < 0) continue;
+                  const resetLine = lines.find(l => !/\\d+\\s*%/.test(l) && /\\d/.test(l) && timeTok.test(l));
+                  if (resetLine) { sessionReset = resetLine.replace(/^(Resets?|Wird|Setzt|Noch)\\s+/i, '').trim(); break; }
+                }
+              } catch(e) {}
+              const usePcts   = (apiPcts && apiPcts.length)     ? apiPcts   : pcts;
+              const useResets = (apiResets && apiResets.length) ? apiResets : resets;
+              const sessReset = (apiResets && apiResets[0])     ? apiResets[0] : sessionReset;
+              return { pcts: usePcts, resets: useResets, sessionReset: sessReset,
+                source: apiPcts ? 'api' : 'dom', url: location.href, ok: usePcts.length > 0,
                 email, plan, org, appearance: { mode, font } };
             })()
           `);
@@ -524,10 +559,11 @@ async function doUpdate(showSyncing = false) {
     return;
   }
   retryCount = 0;
-  console.log('[OhNine] Sync:', JSON.stringify({ org: raw.org, plan: raw.plan, pcts: raw.pcts }));
+  console.log('[OhNine] Sync:', JSON.stringify({ org: raw.org, plan: raw.plan, pcts: raw.pcts, source: raw.source }));
 
   const [sPct=0, wPct=0, nPct=0] = raw.pcts;
-  const [sReset='', wReset='', nReset=''] = raw.resets;
+  const [, wReset='', nReset=''] = raw.resets;
+  const sReset = raw.sessionReset || (raw.resets && raw.resets[0]) || '';
 
   const ap = raw.appearance || {};
   usageData = {

@@ -64,6 +64,18 @@ function fmtTime(iso) {
   return new Date(iso).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12: true }).toLowerCase();
 }
 
+// Weekly/Sonnet resets come from the API as ISO timestamps. Show a friendly
+// date + time; pass through anything that is not an ISO string unchanged.
+function fmtResetAt(v) {
+  if (!v) return '';
+  if (/^\d{4}-\d{2}-\d{2}t/i.test(v)) {
+    const d = new Date(v);
+    if (!isNaN(d)) return d.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ', ' +
+      d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12: true }).toLowerCase();
+  }
+  return v;
+}
+
 // ── Session reset countdown ─────────────────────────────────────────────────────
 // claude.ai only prints a static reset string (e.g. "in 4 hr 58 min"). We turn it
 // into an absolute target timestamp at sync time, then tick a live countdown so the
@@ -79,6 +91,13 @@ let zeroRefreshFired   = false;
 
 function parseResetToTarget(str) {
   if (!str) return null;
+  // ISO timestamp from claude.ai's usage API (e.g. 2026-05-25T13:29:59+00:00).
+  // Language-independent and exact, so this is the primary path. Check it first,
+  // before the clock branch (an ISO string also contains "13:29").
+  if (/^\d{4}-\d{2}-\d{2}t/i.test(String(str).trim())) {
+    const t = Date.parse(str);
+    if (!isNaN(t)) return t;
+  }
   const s = String(str).trim().toLowerCase().replace(/^(in|at)\s+/, '');
   // Clock time ("4:00 pm", "fri 4:00 pm", "16:00") -> next occurrence of that time
   if (/\d{1,2}:\d{2}/.test(s)) {
@@ -238,11 +257,20 @@ function renderUsage(data) {
   sessionPct.textContent = `${sPct}%`;
   sessionPct.className   = 'lane-pct ' + pctClass(sPct);
 
-  // Re-arm the live reset countdown from this sync's fresh value
-  sessionPctState    = sPct;
-  sessionResetRaw    = data.session.resetIn || '';
-  sessionResetTarget = parseResetToTarget(sessionResetRaw);
-  zeroRefreshFired   = false;
+  // Re-arm the live reset countdown from this sync. If a sync returns no reset
+  // (e.g. a transient scrape miss), keep the last still-valid countdown ticking
+  // instead of wiping it, so the time survives the climb into 100%.
+  sessionPctState = sPct;
+  const newResetRaw = data.session.resetIn || '';
+  const newTarget   = parseResetToTarget(newResetRaw);
+  if (newTarget) {
+    sessionResetRaw    = newResetRaw;
+    sessionResetTarget = newTarget;
+    zeroRefreshFired   = false;
+  } else if (!(sessionResetTarget && sessionResetTarget - Date.now() > 0)) {
+    sessionResetRaw    = newResetRaw;
+    sessionResetTarget = null;
+  }
   renderSessionReset();
 
   if (sPct >= 100) {
@@ -260,14 +288,14 @@ function renderUsage(data) {
   weeklyFill.style.background = fillColor(wPct);
   weeklyPct.textContent = `${wPct}%`;
   weeklyPct.className   = 'compact-pct ' + pctClass(wPct);
-  weeklyReset.textContent = data.weekly?.resetAt ? `Resets ${data.weekly.resetAt}` : '';
+  weeklyReset.textContent = data.weekly?.resetAt ? `Resets ${fmtResetAt(data.weekly.resetAt)}` : '';
 
   // Sonnet
   sonnetFill.style.width      = `${nPct}%`;
   sonnetFill.style.background = fillColor(nPct);
   sonnetPct.textContent = `${nPct}%`;
   sonnetPct.className   = 'compact-pct ' + pctClass(nPct);
-  sonnetReset.textContent = data.sonnet?.resetAt ? `Resets ${data.sonnet.resetAt}` : '';
+  sonnetReset.textContent = data.sonnet?.resetAt ? `Resets ${fmtResetAt(data.sonnet.resetAt)}` : '';
 
   if (data.lastUpdated) {
     lastUpdated.textContent = `last sync ${fmtTime(data.lastUpdated)}`;
