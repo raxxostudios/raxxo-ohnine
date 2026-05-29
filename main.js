@@ -3,6 +3,11 @@ const path = require('path');
 const fs = require('fs');
 const zlib = require('zlib');
 
+// Dev mode (npm run dev). Only affects the local preview, never the shipped app:
+// keeps the popup focused + pinned so the Ctrl+Shift+0-9 state shortcuts work and
+// the window does not auto-hide while tweaking visuals.
+const IS_DEV = process.argv.includes('--dev');
+
 // Suppress EPIPE crashes when stdout/stderr pipe breaks (terminal closed)
 process.stdout?.on('error', () => {});
 process.stderr?.on('error', () => {});
@@ -323,6 +328,9 @@ async function fetchUsage() {
         let result = null;
         for (let attempt = 0; attempt < 3; attempt++) {
           await new Promise(r => setTimeout(r, attempt === 0 ? 6000 : 4000));
+          // The window may have been resolved/destroyed elsewhere (timeout, login
+          // redirect) while we waited. Bail quietly instead of throwing on a dead handle.
+          if (win.isDestroyed()) return;
           result = await win.webContents.executeJavaScript(`
             (async () => {
               const text = document.body ? document.body.innerText : '';
@@ -340,14 +348,28 @@ async function fetchUsage() {
                 }
                 if (orgId) {
                   const u = await (await fetch('/api/organizations/' + orgId + '/usage', { credentials: 'include' })).json();
-                  if (u && u.five_hour) {
+                  // Recognize the usage payload even if a given window is null this cycle
+                  // (fresh session, or Anthropic toggling a key). As long as the object
+                  // carries any known limit window we trust the API: it is language
+                  // independent and returns ISO resets_at. Reads are defensive so new or
+                  // renamed sibling keys (seven_day_opus, _cowork, tangelo, etc.) never throw.
+                  if (u && typeof u === 'object' && ('five_hour' in u || 'seven_day' in u || 'seven_day_sonnet' in u)) {
                     const s = u.five_hour || {}, w = u.seven_day || {}, n = u.seven_day_sonnet || {};
                     apiPcts = [s.utilization || 0, w.utilization || 0, n.utilization || 0];
                     apiResets = [s.resets_at || '', w.resets_at || '', n.resets_at || ''];
                   }
                 }
               } catch(e) { /* fall back to DOM scrape below */ }
-              const pcts = [...text.matchAll(/(\\d+)%\\s+used/gi)].map(m => parseInt(m[1]));
+              // DOM fallback (only runs if the API path above failed). The API is the
+              // primary, language-independent source; this just keeps the app alive if
+              // the endpoint ever changes. English first, then a language-independent
+              // pass: on /settings/usage the only percentages are the usage bars, so a
+              // bare "NN %" harvest works for German, French, and every other account
+              // language without hardcoding localized words.
+              let pcts = [...text.matchAll(/(\\d+)\\s*%\\s+used/gi)].map(m => parseInt(m[1]));
+              if (pcts.length === 0) {
+                pcts = [...text.matchAll(/(\\d+)\\s*%/g)].map(m => parseInt(m[1])).filter(n => n >= 0 && n <= 100);
+              }
               // Fallback: try progress bar aria values
               if (pcts.length === 0) {
                 document.querySelectorAll('[role="progressbar"], [aria-valuenow]').forEach(el => {
@@ -470,9 +492,17 @@ async function fetchUsage() {
       }
     });
 
-    win.webContents.on('did-fail-load', (e, code, desc) => {
+    // Only a MAIN-frame failure matters. claude.ai's settings page now embeds
+    // third-party subframes (Cloudflare Turnstile bot-check, isolated-segment and
+    // about:srcdoc helpers) that routinely abort with ERR_ABORTED (-3). The old
+    // handler treated ANY did-fail-load as fatal and destroyed the window mid-load,
+    // so the usage read never ran. That is exactly what broke the app when claude.ai
+    // shipped the bot-check around the Opus 4.8 launch. Ignore subframe failures, and
+    // ignore main-frame -3 too (it fires on client-side redirects that then load fine).
+    win.webContents.on('did-fail-load', (e, code, desc, validatedURL, isMainFrame) => {
+      if (!isMainFrame || code === -3) return;
       console.error('Load failed:', code, desc);
-      const isNetwork = code === -6 || code === -2 || code === -3 || code === -106 || code === -105 || code === -7;
+      const isNetwork = code === -2 || code === -6 || code === -7 || code === -105 || code === -106;
       done({ error: isNetwork ? 'network' : 'load_failed', message: isNetwork ? 'No internet connection' : `Page load failed (${desc})` });
     });
 
@@ -721,11 +751,16 @@ function createPopupWindow(trayBounds) {
     width: W, height: H, x, y,
     frame: false, resizable: false, movable: true, alwaysOnTop: pinned,
     skipTaskbar: true, transparent: true, show: false, backgroundColor: themeBg,
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, additionalArguments: IS_DEV ? ['--dev'] : [] },
   });
   popupWindow.loadFile('popup.html');
+  // Dev preview: open DevTools so visual tweaks can be inspected/live-edited and
+  // states driven from the console (window.api.fakeState(0..9)) without needing
+  // the frameless window to hold OS keyboard focus.
+  if (IS_DEV) popupWindow.webContents.once('did-finish-load', () => popupWindow.webContents.openDevTools({ mode: 'detach' }));
   popupWindow.on('blur', () => {
     if (!popupWindow || popupWindow.isDestroyed()) return;
+    if (IS_DEV) return; // keep the preview window on screen while tweaking
     const c = loadConfig();
     if (c.pinned) return;
     if (loginPending || (loginWindow && !loginWindow.isDestroyed())) return;
@@ -926,6 +961,7 @@ app.whenReady().then(async () => {
       createPopupWindow(bounds);
       popupWindow.once('ready-to-show', () => {
         popupWindow.show();
+        if (IS_DEV) { app.focus({ steal: true }); popupWindow.focus(); }
         if (usageData.lastUpdated) popupWindow.webContents.send('usage-update', usageData);
       });
       doUpdate(true);
@@ -933,6 +969,7 @@ app.whenReady().then(async () => {
       popupWindow.hide();
     } else {
       popupWindow.show();
+      if (IS_DEV) { app.focus({ steal: true }); popupWindow.focus(); }
       if (usageData.lastUpdated) popupWindow.webContents.send('usage-update', usageData);
       doUpdate(true);
     }
