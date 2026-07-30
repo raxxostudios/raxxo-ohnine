@@ -16,6 +16,7 @@ const weeklyReset = $('weeklyReset');
 const sonnetFill  = $('sonnetFill');
 const sonnetPct   = $('sonnetPct');
 const sonnetReset = $('sonnetReset');
+const sonnetLabel = $('sonnetLabel');
 const lastUpdated = $('lastUpdated');
 
 $('refreshBtn').addEventListener('click', handleRefresh);
@@ -290,7 +291,10 @@ function renderUsage(data) {
   weeklyPct.className   = 'compact-pct ' + pctClass(wPct);
   weeklyReset.textContent = data.weekly?.resetAt ? `Resets ${fmtResetAt(data.weekly.resetAt)}` : '';
 
-  // Sonnet
+  // Model-specific weekly limit. The label comes from the API key name
+  // (seven_day_fable -> "Fable"), never hardcoded: Anthropic renames it as the
+  // model lineup changes and the app used to show a stale "Sonnet only 0%".
+  if (sonnetLabel) sonnetLabel.textContent = data.sonnet?.label || 'Model limit';
   sonnetFill.style.width      = `${nPct}%`;
   sonnetFill.style.background = fillColor(nPct);
   sonnetPct.textContent = `${nPct}%`;

@@ -18,6 +18,25 @@ npm run build      # Build installers (.dmg, .exe, .AppImage, .deb)
 | File | Purpose |
 |---|---|
 | `main.js` | Tray, polling, scraping, notifications, login, context menu |
+
+### Reading usage (important)
+
+Usage comes from `/api/organizations/{id}/usage`, called **from inside a rendered
+claude.ai page**. Do not try to move that call into the main process with
+`net.fetch`: tested 2026-07-30 with four header sets up to a full Chrome
+fingerprint, every one returned 403. Cloudflare fingerprints the TLS handshake,
+so a renderer context is required.
+
+The payload's canonical shape is the `limits` array:
+
+```
+{kind:'session',       percent, resets_at}
+{kind:'weekly_all',    percent, resets_at}
+{kind:'weekly_scoped', percent, resets_at, scope:{model:{display_name:'Fable'}}}
+```
+
+The older `seven_day_sonnet` / `_opus` / `_cowork` keys still exist but are now
+all `null`. Reading them is what made the third bar show a permanent 0%.
 | `popup.html` | Popup UI (360x390px) |
 | `popup.css` | Styles, themes, animations |
 | `popup.js` | UI logic, rendering, pills, pin, theme toggle |
@@ -29,7 +48,9 @@ npm run build      # Build installers (.dmg, .exe, .AppImage, .deb)
 ## Features
 
 - Live session tracking with animated progress bar + Claw'd mascot
-- Weekly limit bars for all models
+- Weekly limit bars: "All models" plus the model-scoped limit
+- Model-scoped limit label comes from the API (`limits[].scope.model.display_name`),
+  never hardcoded. It reads "Fable" today and will follow any rename automatically.
 - Auto-sync intervals (30s to 1hr)
 - Native notifications at 80%, 91% ("Oh Nine. Literally."), 100% ("Oh Nein.")
 - Dark and light mode
@@ -40,7 +61,7 @@ npm run build      # Build installers (.dmg, .exe, .AppImage, .deb)
 
 ## Version
 
-Current: 1.0.11
+Current: 1.1.0
 
 Version check: app queries `studio.raxxo.shop/ohnine-version.json` on startup.
 Version is displayed dynamically from app.getVersion() - no hardcoded values in HTML.

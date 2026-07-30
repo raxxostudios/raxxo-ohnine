@@ -17,7 +17,7 @@ Built by [RAXXO Studios](https://raxxo.shop) in Berlin.
 
 - **Live session tracking** with animated progress bar and Claw'd mascot that walks along (and gets tired at 100%)
 - **Live reset countdown** that ticks down so at 100% you see exactly how long until you can continue, no digging through Usage Settings
-- **Weekly limit bars** for all models and Sonnet-specific caps
+- **Weekly limit bars** for all models and the model-scoped cap (labelled from the API, so it follows model renames)
 - **Auto-sync intervals** from 30 seconds to 1 hour, or manual/on-demand
 - **Native notifications** at 80%, 91% ("Oh Nine. Literally."), and 100% ("Oh Nein.")
 - **Dark and light mode** with one-click toggle (adapts all colors, bars, and UI)

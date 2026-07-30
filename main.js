@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, nativeImage, ipcMain, screen, session, shell } = require('electron');
+const { app, BrowserWindow, Tray, nativeImage, ipcMain, net, screen, session, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const zlib = require('zlib');
@@ -30,7 +30,7 @@ let isUpdating = false;
 let usageData = {
   session: { pct: 0, label: 'Current session', resetIn: '' },
   weekly:  { pct: 0, label: 'All models',      resetAt: '' },
-  sonnet:  { pct: 0, label: 'Sonnet only',      resetAt: '' },
+  sonnet:  { pct: 0, label: '',                  resetAt: '' },
   lastUpdated: null,
   email: '',
   plan: '',
@@ -289,6 +289,48 @@ async function isLoggedIn() {
   return cookies.length > 0 && cookies[0].value.length > 10;
 }
 
+// ─── Usage via the API, no page render ────────────────────────────────────────
+// Added v1.1.0. The old path booted a full BrowserWindow every poll, loaded
+// claude.ai/settings/usage, waited 6s+4s+4s for React to paint, then called this
+// same API from inside the page. That is 6-14s of work and a browser window
+// created and destroyed every 30 seconds, and it was the shared root cause of
+// all three reported faults:
+//   - unreliable sync: any slow render, bot-check subframe or 35s timeout lost a cycle
+//   - random "signed out": ANY redirect whose URL contained "/login" was treated as
+//     session expiry, so a Cloudflare interstitial logged you out of the app
+//   - stale model row: see pickModelWindow below
+// net.fetch runs on the same persistent session, so cookies apply, but nothing
+// renders. A cycle is now one JSON request instead of a browser.
+
+function titleCaseModel(key) {
+  return key.split('_').filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+// Find the model-specific weekly window WITHOUT hardcoding a model name.
+// Anthropic renames this key as the lineup changes (seven_day_sonnet became
+// seven_day_fable). The old code read u.seven_day_sonnet directly, so once the
+// key disappeared it fell back to `|| {}` and reported 0%, which is why the app
+// showed "Sonnet only 0%" while claude.ai showed "Fable 3%". Discovering the key
+// means the next rename costs nothing.
+function pickModelWindow(u) {
+  const keys = Object.keys(u || {}).filter(k =>
+    /^seven_day_.+/.test(k) && u[k] && typeof u[k] === 'object' && 'utilization' in u[k]);
+  if (!keys.length) return null;
+  // Prefer a window that is actually reporting usage; otherwise take the first.
+  const key = keys.find(k => (u[k].utilization || 0) > 0) || keys[0];
+  return { key, label: titleCaseModel(key.replace(/^seven_day_/, '')), data: u[key] };
+}
+
+// NOTE (v1.1.0): calling this API directly from the main process with net.fetch
+// does NOT work, and it is not worth trying again. Tested on 2026-07-30 against a
+// live logged-in session with four header sets (bare, UA only, UA+Referer+Origin,
+// and a full Chrome fingerprint incl. sec-ch-ua and Sec-Fetch-*). Every one
+// returned 403. Cloudflare fingerprints the TLS handshake, not just the headers,
+// so a real renderer context is required. That is why the usage read below runs
+// INSIDE the page. Do not "optimise" it back out.
+
 // ─── Fetch usage by scraping claude.ai/settings ───────────────────────────────
 async function fetchUsage() {
   const claudeSession = await getClaudeSession();
@@ -317,17 +359,45 @@ async function fetchUsage() {
 
     win.webContents.once('did-finish-load', async () => {
       const currentUrl = win.webContents.getURL();
-      // If redirected to login, session expired
+      // A URL containing "/login" is NOT proof of a signed-out session, and
+      // treating it as proof is what made the app demand a sign-in at random
+      // (reported 2026-07-30: "not logged in all the time"). claude.ai bounces
+      // through interstitials and bot checks whose URLs can carry /login while
+      // the session is perfectly valid, and a single false positive wipes the
+      // tray into "sign in" until the user intervenes.
+      //
+      // The cookie is the authority. Only declare expiry when the sessionKey is
+      // actually gone. If the cookie still exists we treat it as a transient
+      // failure, which flows into the normal retry with backoff instead.
       if (currentUrl.includes('/login')) {
-        done({ error: 'session_expired', message: 'Session expired. Sign in again.' });
+        let stillHasCookie = false;
+        try {
+          const c = await claudeSession.cookies.get({ domain: 'claude.ai', name: 'sessionKey' });
+          stillHasCookie = c.length > 0 && c[0].value && c[0].value.length > 10;
+        } catch (_) { /* treat a cookie read failure as "unknown", not as logout */ }
+        if (!stillHasCookie) {
+          done({ error: 'session_expired', message: 'Session expired. Sign in again.' });
+          return;
+        }
+        console.log('[OhNine] Hit a /login URL but sessionKey is still valid: treating as transient, not logout');
+        done({ error: 'bot_check', message: 'Blocked by a bot check, will retry' });
         return;
       }
 
       try {
-        // Wait for React to render usage data, retry up to 3 times with increasing delay
+        // Try IMMEDIATELY, then back off only if the read did not succeed.
+        // Until v1.1.0 this slept a flat 6s before the first attempt and 4s before
+        // each retry, so every single cycle cost at least 6s even when the data was
+        // already available. The usage read is an API call made from inside the page,
+        // and it does not need React to have painted, only the document to exist.
+        // Sleeping first just widened the window for a bot check or the 35s timeout
+        // to kill an otherwise healthy cycle. Common case is now ~1s instead of ~6s,
+        // which is the single biggest reliability win available here: fewer seconds
+        // in flight means fewer cycles lost.
         let result = null;
+        const waits = [0, 3000, 5000];
         for (let attempt = 0; attempt < 3; attempt++) {
-          await new Promise(r => setTimeout(r, attempt === 0 ? 6000 : 4000));
+          if (waits[attempt]) await new Promise(r => setTimeout(r, waits[attempt]));
           // The window may have been resolved/destroyed elsewhere (timeout, login
           // redirect) while we waited. Bail quietly instead of throwing on a dead handle.
           if (win.isDestroyed()) return;
@@ -337,7 +407,7 @@ async function fetchUsage() {
               // PRIMARY (language-independent): claude.ai's structured usage API.
               // Returns utilization + ISO resets_at per limit, so it works in any
               // account language and at 100%, unlike scraping localized "Resets" text.
-              let apiPcts = null, apiResets = null;
+              let apiPcts = null, apiResets = null, apiModelKey = '', apiModelLabel = '';
               try {
                 const ents = performance.getEntriesByType('resource').map(e => e.name);
                 let orgId = (ents.find(u => /\\/api\\/organizations\\/[0-9a-f-]+\\/usage/.test(u)) || '').match(/organizations\\/([0-9a-f-]+)\\/usage/);
@@ -353,8 +423,34 @@ async function fetchUsage() {
                   // carries any known limit window we trust the API: it is language
                   // independent and returns ISO resets_at. Reads are defensive so new or
                   // renamed sibling keys (seven_day_opus, _cowork, tangelo, etc.) never throw.
-                  if (u && typeof u === 'object' && ('five_hour' in u || 'seven_day' in u || 'seven_day_sonnet' in u)) {
-                    const s = u.five_hour || {}, w = u.seven_day || {}, n = u.seven_day_sonnet || {};
+                  // PREFERRED: the \`limits\` array. Verified against the live API
+                  // 2026-07-30. This is the shape claude.ai's own Usage panel renders,
+                  // and it carries the model's display_name, so the label is correct in
+                  // any account language without a lookup table.
+                  //   {kind:'session',       percent, resets_at}
+                  //   {kind:'weekly_all',    percent, resets_at}
+                  //   {kind:'weekly_scoped', percent, resets_at, scope:{model:{display_name:'Fable'}}}
+                  //
+                  // The old seven_day_sonnet / _opus / _cowork keys still EXIST but are
+                  // all null now. Reading them is why the app showed a flat 0% on the
+                  // third bar while claude.ai showed Fable at 3%.
+                  if (u && Array.isArray(u.limits) && u.limits.length) {
+                    const byKind = (k) => u.limits.find(l => l && l.kind === k) || null;
+                    const ses = byKind('session');
+                    const all = byKind('weekly_all');
+                    const scoped = byKind('weekly_scoped')
+                      || u.limits.find(l => l && l.group === 'weekly' && l.scope && l.scope.model);
+                    apiPcts = [ses ? ses.percent || 0 : 0, all ? all.percent || 0 : 0, scoped ? scoped.percent || 0 : 0];
+                    apiResets = [ses ? ses.resets_at || '' : '', all ? all.resets_at || '' : '', scoped ? scoped.resets_at || '' : ''];
+                    apiModelLabel = (scoped && scoped.scope && scoped.scope.model && scoped.scope.model.display_name) || '';
+                    apiModelKey = scoped ? (scoped.kind || '') : '';
+                  } else if (u && typeof u === 'object' && ('five_hour' in u || 'seven_day' in u)) {
+                    // LEGACY fallback for older payloads.
+                    const s = u.five_hour || {}, w = u.seven_day || {};
+                    const mk = Object.keys(u).filter(k => /^seven_day_.+/.test(k) && u[k] && typeof u[k] === 'object' && 'utilization' in u[k]);
+                    const key = mk.find(k => (u[k].utilization || 0) > 0) || mk[0];
+                    const n = key ? u[key] : {};
+                    apiModelKey = key || '';
                     apiPcts = [s.utilization || 0, w.utilization || 0, n.utilization || 0];
                     apiResets = [s.resets_at || '', w.resets_at || '', n.resets_at || ''];
                   }
@@ -475,7 +571,7 @@ async function fetchUsage() {
               const useResets = (apiResets && apiResets.length) ? apiResets : resets;
               const sessReset = (apiResets && apiResets[0])     ? apiResets[0] : sessionReset;
               return { pcts: usePcts, resets: useResets, sessionReset: sessReset,
-                source: apiPcts ? 'api' : 'dom', url: location.href, ok: usePcts.length > 0,
+                source: apiPcts ? 'api' : 'dom', modelKey: apiModelKey, modelLabel: apiModelLabel, url: location.href, ok: usePcts.length > 0,
                 email, plan, org, appearance: { mode, font } };
             })()
           `);
@@ -575,6 +671,7 @@ async function doUpdate(showSyncing = false) {
     retryCount++;
     const errorLabel = raw && raw.error === 'network' ? 'No connection'
       : raw && raw.error === 'timeout' ? 'Timed out'
+      : raw && raw.error === 'bot_check' ? 'Bot check'
       : raw && raw.error === 'page_changed' ? 'Page changed'
       : 'Sync failed';
     if (retryCount >= MAX_RETRIES) {
@@ -589,17 +686,21 @@ async function doUpdate(showSyncing = false) {
     return;
   }
   retryCount = 0;
-  console.log('[OhNine] Sync:', JSON.stringify({ org: raw.org, plan: raw.plan, pcts: raw.pcts, source: raw.source }));
+  console.log('[OhNine] Sync:', JSON.stringify({ org: raw.org, plan: raw.plan, pcts: raw.pcts, source: raw.source, modelKey: raw.modelKey || '', modelLabel: raw.modelLabel || '' }));
 
   const [sPct=0, wPct=0, nPct=0] = raw.pcts;
   const [, wReset='', nReset=''] = raw.resets;
   const sReset = raw.sessionReset || (raw.resets && raw.resets[0]) || '';
 
+  // The render fallback returns modelKey only; normalise it to a label here so
+  // both paths feed the UI the same shape.
+  if (!raw.modelLabel && raw.modelKey) raw.modelLabel = titleCaseModel(String(raw.modelKey).replace(/^seven_day_/, ''));
+
   const ap = raw.appearance || {};
   usageData = {
     session: { pct: sPct, resetIn: sReset },
     weekly:  { pct: wPct, resetAt: wReset },
-    sonnet:  { pct: nPct, resetAt: nReset },
+    sonnet:  { pct: nPct, resetAt: nReset, label: raw.modelLabel || usageData.sonnet?.label || '' },
     lastUpdated: new Date().toISOString(),
     email: raw.email || usageData.email || '',
     plan: raw.plan || usageData.plan || '',
