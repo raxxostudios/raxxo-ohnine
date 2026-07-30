@@ -68,12 +68,16 @@
       <div class="compact-bar"><span class="lane-fill" id="weeklyFill"></span></div>
       <div class="compact-reset" id="weeklyReset"></div>
 
-      <div class="compact-header">
-        <span class="compact-label" id="sonnetLabel">Model limit</span>
-        <span class="compact-pct" id="sonnetPct">-</span>
+      <!-- Model-scoped weekly limit. Hidden entirely when the account has no
+           scoped cap, rather than showing a meaningless "0%" bar. -->
+      <div id="sonnetRow">
+        <div class="compact-header">
+          <span class="compact-label" id="sonnetLabel">Model limit</span>
+          <span class="compact-pct" id="sonnetPct">-</span>
+        </div>
+        <div class="compact-bar"><span class="lane-fill" id="sonnetFill"></span></div>
+        <div class="compact-reset" id="sonnetReset"></div>
       </div>
-      <div class="compact-bar"><span class="lane-fill" id="sonnetFill"></span></div>
-      <div class="compact-reset" id="sonnetReset"></div>
 
       <!-- Auto-sync -->
       <div class="interval-row">

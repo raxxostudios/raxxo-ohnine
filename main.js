@@ -941,7 +941,9 @@ ipcMain.handle('fake-state', (_, n) => {
   usageData = {
     session: { pct: f.s, resetIn: f.sr },
     weekly:  { pct: f.w, resetAt: f.wr },
-    sonnet:  { pct: f.n, resetAt: f.nr },
+    // Preview states carry a label so screenshot runs render the real row,
+    // not the "Model limit" placeholder.
+    sonnet:  { pct: f.n, resetAt: f.nr, label: f.nl || 'Fable' },
     lastUpdated: new Date().toISOString(),
     appearance: { theme: '', font: 'ui' },
   };

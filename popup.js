@@ -17,6 +17,7 @@ const sonnetFill  = $('sonnetFill');
 const sonnetPct   = $('sonnetPct');
 const sonnetReset = $('sonnetReset');
 const sonnetLabel = $('sonnetLabel');
+const sonnetRow   = $('sonnetRow');
 const lastUpdated = $('lastUpdated');
 
 $('refreshBtn').addEventListener('click', handleRefresh);
@@ -294,6 +295,11 @@ function renderUsage(data) {
   // Model-specific weekly limit. The label comes from the API key name
   // (seven_day_fable -> "Fable"), never hardcoded: Anthropic renames it as the
   // model lineup changes and the app used to show a stale "Sonnet only 0%".
+  // Accounts without a model-scoped cap get no row at all. Showing a permanent
+  // "0%" bar there would repeat the exact confusion the stale "Sonnet only 0%"
+  // caused, just for a different reason.
+  const hasScoped = !!(data.sonnet?.label) || nPct > 0;
+  if (sonnetRow) sonnetRow.style.display = hasScoped ? '' : 'none';
   if (sonnetLabel) sonnetLabel.textContent = data.sonnet?.label || 'Model limit';
   sonnetFill.style.width      = `${nPct}%`;
   sonnetFill.style.background = fillColor(nPct);
